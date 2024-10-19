@@ -1,5 +1,6 @@
 import unittest
 import sqlite3
+import hashlib
 from user_management import registerUser, loginUser, hashPassword
 
 # test_user_management.py
