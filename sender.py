@@ -8,12 +8,12 @@ DBconn = sqlite3.connect('p2p_system.db')
 cursor = DBconn.cursor()
 
 cursor.execute(
-    ''' id INTEGER AUTOINCREMENT,
+    ''' REATE TABLE IF NOT EXISTS files (id INTEGER AUTOINCREMENT,
     filename TEXT NOT NULL PRIMARY KEY,
     filesize INTEGER NOT NULL,
     filetype TEXT NOT NULL,
     username TEXT NOT NULL,
-    upload_date DATETIME DEFAULT CURRENT_TIMESTAMP'''
+    upload_date DATETIME DEFAULT CURRENT_TIMESTAMP)'''
 )
 
 def store_file_metadata(filename, filesize, filetype, username,upload_date):
