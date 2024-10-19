@@ -1,5 +1,28 @@
 import socket
 import threading
+import os
+import sqlite3
+import hashlib
+
+DBconn = sqlite3.connect('p2p_system.db')
+cursor = DBconn.cursor()
+
+cursor.execute(
+    ''' id INTEGER AUTOINCREMENT,
+    filename TEXT NOT NULL PRIMARY KEY,
+    filesize INTEGER NOT NULL,
+    filetype TEXT NOT NULL,
+    username TEXT NOT NULL,
+    upload_date DATETIME DEFAULT CURRENT_TIMESTAMP'''
+)
+
+def store_file_metadata(filename, filesize, filetype, username,upload_date):
+    cursor.execute(
+        '''INSERT INTO files (filename, filesize, filetype, username,upload_date) VALUES (?, ?, ?, ?,?)''',
+        (filename, filesize, filetype, username,upload_date)
+    )
+    DBconn.commit()
+
 
 def broadcast_file_info(files):
     # Broadcast information about the files being shared
@@ -16,6 +39,7 @@ def listen_for_requests(port):
 def main():
     files = []  # Logic to choose files to share
     # Start broadcasting
+    username = "user123"  # Replace with actual username from logins
     threading.Thread(target=broadcast_file_info, args=(files,)).start()
     
     # Start listening for requests
