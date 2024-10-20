@@ -79,8 +79,10 @@ def listen_for_requests(port, username):
                 print(f"Connected by {addr}")
                 requested_file = conn.recv(1024).decode()  # Receive requested file name
                 if os.path.exists(requested_file):
+                    newport = port + 1
                     conn.sendall(b"READY")  # Confirm file availability
-                    send_file(requested_file, addr[0], port + 1)  # Use a separate port for file transfer
+                    conn.sendall(str(newport).encode())  # Send the new port to the recipient
+                    send_file(requested_file, addr[0], newport)  # Use a separate port for file transfer
                     store_file_metadata(requested_file, os.path.getsize(requested_file),
                                         os.path.splitext(requested_file)[1], username)
                 else:
