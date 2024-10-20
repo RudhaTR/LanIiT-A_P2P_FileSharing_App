@@ -33,12 +33,12 @@ def store_file_metadata(filename, filesize, filetype, username):
         )
         DBconn.commit()
 
-def broadcast_file_info(files, username, port=12345, interval=5):
+def broadcast_file_info(files, username, port=12345, interval=5, stop_event=None):
     # Broadcast information about the files being shared
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         message = f"User: {username} | Available files: " + ", ".join(files)
-        while True:
+        while not stop_event.is_set():
             try:
                 sock.sendto(message.encode(), ('<broadcast>', port))
                 print(f"Broadcasting: {message}")
@@ -46,7 +46,12 @@ def broadcast_file_info(files, username, port=12345, interval=5):
             except Exception as e:
                 print(f"Broadcast error: {e}")
 
-def send_file(filename, recipient_ip, port):
+def stop_broadcast_after_timeout(stop_event, timeout=180):
+    time.sleep(timeout)  # Wait for 3minutes  (180 seconds)
+    stop_event.set()     # Stop broadcasting
+
+
+def send_file(filename, recipient_ip, port): #Need to send the nwe port to the recipient so it can connect to it to recieve files and still send the file name reqd
     # Send the file in chunks to avoid memory overload
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         try:
@@ -87,10 +92,20 @@ def main():
     username = "user123"  # Replace with actual username from the login process
 
     # Start broadcasting file info in a separate thread
-    threading.Thread(target=broadcast_file_info, args=(files, username)).start()
+    stop_event = threading.Event() 
+    broadcastThread = threading.Thread(target=broadcast_file_info, args=(files, username,stop_event))
+    broadcastThread.start()
+
+    timer_thread = threading.Thread(target=stop_broadcast_after_timeout, args=(stop_event,))
+    timer_thread.start()
+
 
     # Start listening for file requests
     listen_for_requests(12345, username)
+    timer_thread.join()
+    broadcastThread.join()
+    
 
 if __name__ == '__main__':
     main()
+   
