@@ -58,6 +58,12 @@ def main():
     # Start broadcasting user presence
     threading.Thread(target=broadcast_discovery).start()
 
-    while True:
-        filename = input("Enter the filename to search: ")
-        # Call search function logic here...
+    def main():
+    # Start peer discovery in a separate thread
+        discovery_thread = threading.Thread(target=broadcast_discovery)
+        discovery_thread.start()
+        discovery_thread.join()  # Wait for discovery to complete
+
+        
+if __name__ == '__main__':
+    main()
