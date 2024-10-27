@@ -40,7 +40,7 @@ def search_for_file(filename, peer_list):
     available_peers = []
     for peer_ip, info in peers.items():
         if filename in info['files']:
-            available_peers.append(peer_ip)
+            available_peers.append([peer_ip, info['username']])
     return available_peers
 
 def display_files():
@@ -48,11 +48,45 @@ def display_files():
     for peer_ip, info in peers.items():
         print(f"Peer: {info['username']} ({peer_ip})\n")
         print("Files: ", ", ".join(info['files']), "\n")
-    
 
-def request_file(peer_ip, filename):
-    # Function to send a request for a specific file
-    pass
+import socket
+
+def request_file(peer_ip, filename, main_port=12345):
+    # Connect to peer on the main port to request the file
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        try:
+            sock.connect((peer_ip, main_port))
+            sock.sendall(filename.encode())  # Send filename request
+            
+            # Wait for response from the sender
+            response = sock.recv(1024).decode()
+            if response == "READY":
+                new_port = int(sock.recv(1024).decode())  # Receive the new port for file transfer
+                print(f"File '{filename}' available on port {new_port}. Initiating download...")
+                receive_file(peer_ip, new_port, filename)
+            else:
+                print(f"File '{filename}' not available from {peer_ip}")
+        except Exception as e:
+            print(f"Error connecting to {peer_ip} for file '{filename}': {e}")
+
+def receive_file(peer_ip, port, filename):
+    # Connect to the new port for file transfer and receive the file
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as file_sock:
+        try:
+            file_sock.connect((peer_ip, port))
+            local_filename = f"{peer_ip}_{filename}"  # Save with peer IP to prevent overwrites
+            with open(local_filename, 'wb') as f:
+                print(f"Receiving file '{filename}' from {peer_ip}...")
+                while True:
+                    data = file_sock.recv(4096)
+                    if not data:
+                        break
+                    f.write(data)
+            print(f"File '{filename}' received and saved as '{local_filename}'")
+        except Exception as e:
+            print(f"Error receiving file '{filename}' from {peer_ip}: {e}")
+
+    
 
 def main():
     # Start broadcasting user presence
@@ -63,6 +97,26 @@ def main():
         discovery_thread = threading.Thread(target=broadcast_discovery)
         discovery_thread.start()
         discovery_thread.join()  # Wait for discovery to complete
+
+    display_files()
+    
+    # Collect requested files
+    file_requests = []
+    while True:
+        filename = input("Enter the filename you want to request (or 'done' to finish): ")
+        if filename.lower() == 'done':
+            break
+        available_peers = search_for_file(filename, peers)
+        if available_peers:
+            print(f"File '{filename}' is available from: {available_peers}")
+            selected_peer = input("Enter the peer IP to request the file from: ")
+            file_requests.append((selected_peer, filename))
+        else:
+            print(f"File '{filename}' not found on any peers.")
+
+    # Request files sequentially from the selected peers
+    for peer_ip, filename in file_requests:
+        request_file(peer_ip, filename)
 
         
 if __name__ == '__main__':
