@@ -128,7 +128,10 @@ def main():
         if available_peers:
             print(f"File '{filename}' is available from: {available_peers}")
             selected_peer = input("Enter the peer IP to request the file from: ")
-            file_requests.append((selected_peer, filename))
+            if(selected_peer in available_peers):
+                file_requests.append((selected_peer, filename))
+            else:
+                print("Invalid peer IP.")
         else:
             print(f"File '{filename}' not found on any peers.")
 
