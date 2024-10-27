@@ -31,6 +31,8 @@ def broadcast_discovery(port=12345, discovery_time=10):
                     
                     # Store peer IP, username, and available files
                     peers[addr[0]] = {'username': username, 'files': files}
+                except socket.timeout:
+                    pass
                 except Exception as e:
                     print(f"Error parsing broadcast from {addr[0]}: {e}")
         

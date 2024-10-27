@@ -132,6 +132,8 @@ def listen_for_requests(port, username,stop_event):
                     else:
                         conn.sendall(b"ERROR: File not found")
                         print(f"File {requested_file} not found.")
+            except socket.timeout:
+                pass
             except Exception as e:
                 print(f"Error handling request: {e}")
 
