@@ -35,6 +35,20 @@ def store_file_metadata(filename, filesize, filetype, username):
             )
         DBconn.commit()
 
+def retrieve_file_metadata(username):
+    retrieve_file = None
+    with db_lock:
+        retrieve_file = cursor.execute("SELECT filename FROM files WHERE username = ?", (username,))
+    
+    files = retrieve_file.fetchall()
+
+    if files:
+        print(f"Files available for {username}:\n")
+        for row in files:
+            print(row[0],"\n")  # row[0] contains the filename since we only selected "filename"
+    else:
+        print(f"No files available for {username}\n")
+
 def get_files_from_user(username):
     files = []
     while True:
@@ -154,8 +168,9 @@ def listen_for_requests(port, username,stop_event,file_dict):
                 print(f"Error handling request: {e}")
 
 def main():
-    #files = [f for f in os.listdir() if os.path.isfile(f)]  # List all files in the current directory
+    
     username = "user123"  # Replace with actual username from the login process
+    retrieve_file_metadata(username)  # Display files available for sharing
     user_files = get_files_from_user(username)  # Get files from user
     file_dict = {file['name']: file['path'] for file in user_files}
     file_names = list(file_dict.keys())  # Extract file names for broadcasting
