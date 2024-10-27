@@ -98,7 +98,7 @@ def listen_for_requests(port, username,stop_event):
      with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(('', port))
         sock.listen()
-        sock.settimeout(1.0)  # Set a 1-second timeout for accept()
+        sock.settimeout(5)  # Set a 1-second timeout for accept()
         print(f"Listening for file requests on port {port}...")
         
         
