@@ -14,27 +14,30 @@ def broadcast_discovery(port=12345, discovery_time=10):
         print("Listening for peer broadcasts...")
         
         # Discover peers broadcasting within a time window
-        start_time = time.time()
-        while time.time() - start_time < discovery_time:
-            data, addr = sock.recvfrom(1024)
-            message = data.decode()
+        try:
+            start_time = time.time()
+            while time.time() - start_time < discovery_time:
+                data, addr = sock.recvfrom(1024)
+                message = data.decode()
 
-            if addr[0] not in peers:
-    
-                # Extract username and file list from the message
-                try:
-                    parts = message.split(" | ")
-                    username = parts[0].split(": ")[1]
-                    files = parts[1].split(": ")[1].split(", ")
+                if addr[0] not in peers:
+        
+                    # Extract username and file list from the message
+                    try:
+                        parts = message.split(" | ")
+                        username = parts[0].split(": ")[1]
+                        files = parts[1].split(": ")[1].split(", ")
 
-                    print(f"Discovered peer {addr[0]} : {username}\n")
-                    
-                    # Store peer IP, username, and available files
-                    peers[addr[0]] = {'username': username, 'files': files}
-                except socket.timeout:
-                    pass
-                except Exception as e:
-                    print(f"Error parsing broadcast from {addr[0]}: {e}")
+                        print(f"Discovered peer {addr[0]} : {username}")
+                        
+                        # Store peer IP, username, and available files
+                        peers[addr[0]] = {'username': username, 'files': files}
+                    except Exception as e:
+                        print(f"Error parsing broadcast from {addr[0]}: {e}")
+        except socket.timeout:
+            pass
+        except Exception as e:
+            print(f"Error trying to receive broadcast data : {e}")
         
         print(f"Discovery complete. Peers found: {peers}")
     
@@ -42,7 +45,7 @@ def broadcast_discovery(port=12345, discovery_time=10):
 def search_for_file(filename, peer_list):
     # Function to search for files from discovered peers
     available_peers = []
-    for peer_ip, info in peer_list.items():
+    for peer_ip, info in peers.items():
         if filename in info['files']:
             available_peers.append([peer_ip, info['username']])
     return available_peers
@@ -50,8 +53,8 @@ def search_for_file(filename, peer_list):
 def display_files():
     # Function to display files shared by discovered peers
     for peer_ip, info in peers.items():
-        print(f"Peer: {info['username']} ({peer_ip})\n")
-        print("Files: ", ", ".join(info['files']), "\n")
+        print(f"Peer: {info['username']} ({peer_ip})")
+        print("Files: ", ", ".join(info['files']))
 
 import socket
 
