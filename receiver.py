@@ -42,7 +42,7 @@ def broadcast_discovery(port=12345, discovery_time=10):
 def search_for_file(filename, peer_list):
     # Function to search for files from discovered peers
     available_peers = []
-    for peer_ip, info in peers.items():
+    for peer_ip, info in peer_list.items():
         if filename in info['files']:
             available_peers.append([peer_ip, info['username']])
     return available_peers
@@ -126,9 +126,10 @@ def main():
             break
         available_peers = search_for_file(filename, peers)
         if available_peers:
+            peer_ips = [peer[0] for peer in available_peers]
             print(f"File '{filename}' is available from: {available_peers}")
             selected_peer = input("Enter the peer IP to request the file from: ")
-            if(selected_peer in available_peers):
+            if(selected_peer in peer_ips):
                 file_requests.append((selected_peer, filename))
             else:
                 print("Invalid peer IP.")
