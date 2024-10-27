@@ -16,6 +16,7 @@ cursor.execute(
         filename TEXT NOT NULL,
         filesize INTEGER NOT NULL,
         filetype TEXT NOT NULL,
+        filepath TEXT NOT NULL,
         username TEXT NOT NULL,
         upload_date DATETIME DEFAULT CURRENT_TIMESTAMP)'''
 )
@@ -24,30 +25,31 @@ DBconn.commit()
 # Lock for thread-safe DB operations
 db_lock = threading.Lock()
 
-def store_file_metadata(filename, filesize, filetype, username):
+def store_file_metadata(filename, filesize, filetype, filepath,username):
     with db_lock:
         cursor.execute("SELECT * FROM files WHERE filename = ?", (filename,))
         if cursor.fetchone() is None:
             cursor.execute(
-                '''INSERT INTO files (filename, filesize, filetype, username) 
-                VALUES (?, ?, ?, ?)''',
-                (filename, filesize, filetype, username)
+                '''INSERT INTO files (filename, filesize, filetype,filepath, username) 
+                VALUES (?, ?, ?, ?,?)''',
+                (filename, filesize, filetype,filepath,username)
             )
         DBconn.commit()
 
 def retrieve_file_metadata(username):
     retrieve_file = None
     with db_lock:
-        retrieve_file = cursor.execute("SELECT filename FROM files WHERE username = ?", (username,))
+        retrieve_file = cursor.execute("SELECT filename,filepath FROM files WHERE username = ?", (username,))
     
     files = retrieve_file.fetchall()
 
     if files:
-        print(f"Files available for {username}:\n")
+        print(f"Files available for {username}:")
         for row in files:
-            print(row[0],"\n")  # row[0] contains the filename since we only selected "filename"
+            print(row[0])  # row[0] contains the filename since we only selected "filename"
     else:
-        print(f"No files available for {username}\n")
+        print(f"No files available for {username}")
+    return files
 
 def get_files_from_user(username):
     files = []
@@ -61,7 +63,7 @@ def get_files_from_user(username):
             filetype = os.path.splitext(filename)[1]
             files.append({'path': filepath, 'name': filename, 'size': filesize, 'type': filetype})
             print(f"Added {filename}")
-            store_file_metadata(filename, filesize, filetype, username)
+            store_file_metadata(filename, filesize, filetype,filepath,username)
         else:
             print(f"Invalid file path: {filepath}")
     return files
@@ -170,9 +172,12 @@ def listen_for_requests(port, username,stop_event,file_dict):
 def main():
     
     username = "user123"  # Replace with actual username from the login process
-    retrieve_file_metadata(username)  # Display files available for sharing
+    file_metadata = retrieve_file_metadata(username)  # Display files available for sharing
     user_files = get_files_from_user(username)  # Get files from user
     file_dict = {file['name']: file['path'] for file in user_files}
+    for row in file_metadata:
+        file_dict[row[0]] = row[1]
+        
     file_names = list(file_dict.keys())  # Extract file names for broadcasting
 
     # Start broadcasting file info in a separate thread
