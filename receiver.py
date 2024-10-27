@@ -107,14 +107,11 @@ def receive_file(peer_ip, port, filename):
     
 
 def main():
-    # Start broadcasting user presence
-    threading.Thread(target=broadcast_discovery).start()
 
-    def main():
     # Start peer discovery in a separate thread
-        discovery_thread = threading.Thread(target=broadcast_discovery)
-        discovery_thread.start()
-        discovery_thread.join()  # Wait for discovery to complete
+    discovery_thread = threading.Thread(target=broadcast_discovery)
+    discovery_thread.start()
+    discovery_thread.join()  # Wait for discovery to complete
 
     display_files()
     
