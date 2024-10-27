@@ -43,13 +43,13 @@ def setup_file_transfer(port):
 def broadcast_file_info(files, username,  stop_event,port=12345, interval=5):
     # Broadcast information about the files being shared
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-       # sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #testing on local host
         message = f"User: {username} | Available files: " + ", ".join(files)
         while not stop_event.is_set():
             try:
-               # sock.sendto(message.encode(), ('<broadcast>', port))
-                sock.sendto(message.encode(), ('127.0.0.1', port))
+                sock.sendto(message.encode(), ('<broadcast>', port))
+               # sock.sendto(message.encode(), ('127.0.0.1', port))
                 print(f"Broadcasting: {message}")
                 time.sleep(interval)  # Sleep to prevent network spamming
             except Exception as e:
