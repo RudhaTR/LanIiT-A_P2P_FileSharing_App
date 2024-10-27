@@ -62,15 +62,17 @@ def request_file(peer_ip, filename, main_port=12345):
             # Wait for response from the sender
             response = sock.recv(1024).decode()
             if response == "READY":
+                time.sleep(0.1)  # Wait for the sender to send next message
                 new_port = int(sock.recv(1024).decode())  # Receive the new port for file transfer
                 print(f"File '{filename}' available on port {new_port}. Initiating download...")
+                time.sleep(0.5)# time for sender to setup socket
                 receive_file(peer_ip, new_port, filename)
             else:
                 print(f"File '{filename}' not available from {peer_ip}")
         except Exception as e:
             print(f"Error connecting to {peer_ip} for file '{filename}': {e}")
 
-def receive_file(peer_ip, port, filename):
+'''def receive_file(peer_ip, port, filename):
     # Connect to the new port for file transfer and receive the file
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as file_sock:
         try:
@@ -85,7 +87,37 @@ def receive_file(peer_ip, port, filename):
                     f.write(data)
             print(f"File '{filename}' received and saved as '{local_filename}'")
         except Exception as e:
+            print(f"Error receiving file '{filename}' from {peer_ip}: {e}")'''
+def receive_file(peer_ip, port, filename):
+    max_retries = 5
+    retry_delay = 1  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as file_sock:
+                print(f"Attempting to connect to {peer_ip}:{port} (Attempt {attempt + 1}/{max_retries})")
+                file_sock.connect((peer_ip, port))
+                
+                local_filename = f"{peer_ip}_{filename}"
+                with open(local_filename, 'wb') as f:
+                    print(f"Receiving file '{filename}' from {peer_ip}...")
+                    while True:
+                        data = file_sock.recv(4096)
+                        if not data:
+                            break
+                        f.write(data)
+                print(f"File '{filename}' received and saved as '{local_filename}'")
+                return True
+        except ConnectionRefusedError:
+            if attempt < max_retries - 1:
+                print(f"Connection failed, retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                print(f"Failed to connect after {max_retries} attempts")
+                return False
+        except Exception as e:
             print(f"Error receiving file '{filename}' from {peer_ip}: {e}")
+            return False
 
     
 
