@@ -72,22 +72,7 @@ def request_file(peer_ip, filename, main_port=12345):
         except Exception as e:
             print(f"Error connecting to {peer_ip} for file '{filename}': {e}")
 
-'''def receive_file(peer_ip, port, filename):
-    # Connect to the new port for file transfer and receive the file
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as file_sock:
-        try:
-            file_sock.connect((peer_ip, port))
-            local_filename = f"{peer_ip}_{filename}"  # Save with peer IP to prevent overwrites
-            with open(local_filename, 'wb') as f:
-                print(f"Receiving file '{filename}' from {peer_ip}...")
-                while True:
-                    data = file_sock.recv(4096)
-                    if not data:
-                        break
-                    f.write(data)
-            print(f"File '{filename}' received and saved as '{local_filename}'")
-        except Exception as e:
-            print(f"Error receiving file '{filename}' from {peer_ip}: {e}")'''
+
 def receive_file(peer_ip, port, filename):
     max_retries = 5
     retry_delay = 1  # seconds
