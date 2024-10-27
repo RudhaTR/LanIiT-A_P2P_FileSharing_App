@@ -10,6 +10,7 @@ def broadcast_discovery(port=12345, discovery_time=10):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #testing on local host
         sock.bind(("", port))
+        sock.settimeout(10)  # Set a 10-second timeout for recvfrom()
         print("Listening for peer broadcasts...")
         
         # Discover peers broadcasting within a time window
