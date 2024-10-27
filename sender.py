@@ -26,12 +26,31 @@ db_lock = threading.Lock()
 
 def store_file_metadata(filename, filesize, filetype, username):
     with db_lock:
-        cursor.execute(
-            '''INSERT INTO files (filename, filesize, filetype, username) 
-               VALUES (?, ?, ?, ?)''',
-            (filename, filesize, filetype, username)
-        )
+        cursor.execute("SELECT * FROM files WHERE filename = ?", (filename,))
+        if cursor.fetchone() is None:
+            cursor.execute(
+                '''INSERT INTO files (filename, filesize, filetype, username) 
+                VALUES (?, ?, ?, ?)''',
+                (filename, filesize, filetype, username)
+            )
         DBconn.commit()
+
+def get_files_from_user(username):
+    files = []
+    while True:
+        filepath = input("Enter the file path to share (or type 'done' to finish): ")
+        if filepath.lower() == 'done':
+            break
+        elif os.path.isfile(filepath):
+            filename = os.path.basename(filepath)
+            filesize = os.path.getsize(filepath)
+            filetype = os.path.splitext(filename)[1]
+            files.append({'path': filepath, 'name': filename, 'size': filesize, 'type': filetype})
+            print(f"Added {filename}")
+            store_file_metadata(filename, filesize, filetype, username)
+        else:
+            print(f"Invalid file path: {filepath}")
+    return files
 
 def setup_file_transfer(port):
     # Setup a server socket for file transfer
@@ -73,14 +92,15 @@ def stop_broadcast_after_timeout(stop_event, timeout=180):
     stop_event.set()     # Stop broadcasting
 
 
-def send_file(filename, recipient_ip, port): #Need to send the nwe port to the recipient so it can connect to it to recieve files and still send the file name reqd
+def send_file(filepath, recipient_ip, port): #Need to send the nwe port to the recipient so it can connect to it to recieve files and still send the file name reqd
     # Send the file in chunks to avoid memory overload
     transfer_socket = setup_file_transfer(port)
     try:
         print(f"Waiting for connection on port {port}...")
         conn, addr = transfer_socket.accept()
         with conn:
-            with open(filename, 'rb') as f:
+            with open(filepath, 'rb') as f:
+                filename = os.path.basename(filepath)
                 print(f"Sending {filename} to {recipient_ip}...")
                 while True:
                     chunk = f.read(4096)
@@ -93,7 +113,7 @@ def send_file(filename, recipient_ip, port): #Need to send the nwe port to the r
     finally:
         transfer_socket.close()
 
-def listen_for_requests(port, username,stop_event):
+def listen_for_requests(port, username,stop_event,file_dict):
     # Listen for incoming requests and send files
      with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(('', port))
@@ -108,7 +128,9 @@ def listen_for_requests(port, username,stop_event):
                 with conn:
                     print(f"Connected by {addr}")
                     requested_file = conn.recv(1024).decode()
-                    if os.path.exists(requested_file):
+
+                    if requested_file in file_dict:
+                        filepath = file_dict[requested_file]
                         newport = port + 1
                         
                         # Send READY and new port
@@ -119,16 +141,16 @@ def listen_for_requests(port, username,stop_event):
                         # Start file transfer in a new thread
                         transfer_thread = threading.Thread(
                             target=send_file,
-                            args=(requested_file, addr[0], newport)
+                            args=(filepath, addr[0], newport)
                         )
                         transfer_thread.start()
                         
-                        store_file_metadata(
+                        '''store_file_metadata(
                             requested_file, 
                             os.path.getsize(requested_file),
                             os.path.splitext(requested_file)[1], 
                             username
-                        )
+                        )'''
                     else:
                         conn.sendall(b"ERROR: File not found")
                         print(f"File {requested_file} not found.")
@@ -138,14 +160,17 @@ def listen_for_requests(port, username,stop_event):
                 print(f"Error handling request: {e}")
 
 def main():
-    files = [f for f in os.listdir() if os.path.isfile(f)]  # List all files in the current directory
+    #files = [f for f in os.listdir() if os.path.isfile(f)]  # List all files in the current directory
     username = "user123"  # Replace with actual username from the login process
+    user_files = get_files_from_user()  # Get files from user
+    file_dict = {file['name']: file['path'] for file in user_files}
+    file_names = list(file_dict.keys())  # Extract file names for broadcasting
 
     # Start broadcasting file info in a separate thread
     stop_event = threading.Event() 
-    broadcastThread = threading.Thread(target=broadcast_file_info, args=(files, username,stop_event))
+    broadcastThread = threading.Thread(target=broadcast_file_info, args=(file_names, username,stop_event))
     timer_thread = threading.Thread(target=stop_broadcast_after_timeout, args=(stop_event,))
-    listener_thread = threading.Thread(target=listen_for_requests, args=(12345, username, stop_event))
+    listener_thread = threading.Thread(target=listen_for_requests, args=(12345, username, stop_event,file_dict))
 
     try:
         # Start threads
