@@ -57,7 +57,7 @@ def setup_file_transfer(port):
     transfer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     transfer_socket.bind(('', port))
     transfer_socket.listen(1)
-    return transfer_socket
+    return transfer_socket,transfer_socket.getsockname()[1]
 
 def broadcast_file_info(files, username,  stop_event,port=12345, interval=5):
     # Broadcast information about the files being shared
@@ -92,9 +92,9 @@ def stop_broadcast_after_timeout(stop_event, timeout=180):
     stop_event.set()     # Stop broadcasting
 
 
-def send_file(filepath, recipient_ip, port): #Need to send the nwe port to the recipient so it can connect to it to recieve files and still send the file name reqd
+def send_file(filepath, recipient_ip, transfer_socket): #Need to send the nwe port to the recipient so it can connect to it to recieve files and still send the file name reqd
     # Send the file in chunks to avoid memory overload
-    transfer_socket = setup_file_transfer(port)
+    port = transfer_socket.getsockname()[1]
     try:
         print(f"Waiting for connection on port {port}...")
         conn, addr = transfer_socket.accept()
@@ -131,7 +131,7 @@ def listen_for_requests(port, username,stop_event,file_dict):
 
                     if requested_file in file_dict:
                         filepath = file_dict[requested_file]
-                        newport = port + 1
+                        transfer_socket, newport = setup_file_transfer(0)  # Get a new port
                         
                         # Send READY and new port
                         conn.sendall(b"READY")
@@ -141,16 +141,10 @@ def listen_for_requests(port, username,stop_event,file_dict):
                         # Start file transfer in a new thread
                         transfer_thread = threading.Thread(
                             target=send_file,
-                            args=(filepath, addr[0], newport)
+                            args=(filepath, addr[0], transfer_socket)
                         )
                         transfer_thread.start()
-                        
-                        '''store_file_metadata(
-                            requested_file, 
-                            os.path.getsize(requested_file),
-                            os.path.splitext(requested_file)[1], 
-                            username
-                        )'''
+            
                     else:
                         conn.sendall(b"ERROR: File not found")
                         print(f"File {requested_file} not found.")
@@ -162,7 +156,7 @@ def listen_for_requests(port, username,stop_event,file_dict):
 def main():
     #files = [f for f in os.listdir() if os.path.isfile(f)]  # List all files in the current directory
     username = "user123"  # Replace with actual username from the login process
-    user_files = get_files_from_user()  # Get files from user
+    user_files = get_files_from_user(username)  # Get files from user
     file_dict = {file['name']: file['path'] for file in user_files}
     file_names = list(file_dict.keys())  # Extract file names for broadcasting
 
