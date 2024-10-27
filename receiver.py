@@ -7,7 +7,8 @@ peers = {} # Dictionary to store discovered peers and their shared files
 def broadcast_discovery(port=12345, discovery_time=10):
     # Broadcasts user presence on the LAN
      with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        #sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #testing on local host
         sock.bind(("", port))
         print("Listening for peer broadcasts...")
         

@@ -36,7 +36,8 @@ def store_file_metadata(filename, filesize, filetype, username):
 def broadcast_file_info(files, username, port=12345, interval=5, stop_event=None):
     # Broadcast information about the files being shared
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+       # sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #testing on local host
         message = f"User: {username} | Available files: " + ", ".join(files)
         while not stop_event.is_set():
             try:
