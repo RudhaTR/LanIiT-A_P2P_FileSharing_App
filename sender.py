@@ -33,6 +33,13 @@ def store_file_metadata(filename, filesize, filetype, username):
         )
         DBconn.commit()
 
+def setup_file_transfer(port):
+    # Setup a server socket for file transfer
+    transfer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    transfer_socket.bind(('', port))
+    transfer_socket.listen(1)
+    return transfer_socket
+
 def broadcast_file_info(files, username,  stop_event,port=12345, interval=5):
     # Broadcast information about the files being shared
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
@@ -55,41 +62,63 @@ def stop_broadcast_after_timeout(stop_event, timeout=180):
 
 def send_file(filename, recipient_ip, port): #Need to send the nwe port to the recipient so it can connect to it to recieve files and still send the file name reqd
     # Send the file in chunks to avoid memory overload
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        try:
-            sock.connect((recipient_ip, port))
+    transfer_socket = setup_file_transfer(port)
+    try:
+        print(f"Waiting for connection on port {port}...")
+        conn, addr = transfer_socket.accept()
+        with conn:
             with open(filename, 'rb') as f:
                 print(f"Sending {filename} to {recipient_ip}...")
                 while True:
                     chunk = f.read(4096)
                     if not chunk:
                         break
-                    sock.sendall(chunk)
-            print(f"File {filename} sent to {recipient_ip}")
-        except Exception as e:
-            print(f"Failed to send {filename} to {recipient_ip}: {e}")
+                    conn.sendall(chunk)
+                print(f"File {filename} sent to {recipient_ip}")
+    except Exception as e:
+        print(f"Failed to send {filename} to {recipient_ip}: {e}")
+    finally:
+        transfer_socket.close()
 
 def listen_for_requests(port, username):
     # Listen for incoming requests and send files
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(('', port))
         sock.listen()
         print(f"Listening for file requests on port {port}...")
+        
         while True:
-            conn, addr = sock.accept()
-            with conn:
-                print(f"Connected by {addr}")
-                requested_file = conn.recv(1024).decode()  # Receive requested file name
-                if os.path.exists(requested_file):
-                    newport = port + 1
-                    conn.sendall(b"READY")  # Confirm file availability
-                    conn.sendall(str(newport).encode())  # Send the new port to the recipient
-                    send_file(requested_file, addr[0], newport)  # Use a separate port for file transfer
-                    store_file_metadata(requested_file, os.path.getsize(requested_file),
-                                        os.path.splitext(requested_file)[1], username)
-                else:
-                    conn.sendall(b"ERROR: File not found")
-                    print(f"File {requested_file} not found.")
+            try:
+                conn, addr = sock.accept()
+                with conn:
+                    print(f"Connected by {addr}")
+                    requested_file = conn.recv(1024).decode()
+                    if os.path.exists(requested_file):
+                        newport = port + 1
+                        
+                        # Send READY and new port
+                        conn.sendall(b"READY")
+                        time.sleep(0.1)  # Small delay to prevent message mixing
+                        conn.sendall(str(newport).encode())
+                        
+                        # Start file transfer in a new thread
+                        transfer_thread = threading.Thread(
+                            target=send_file,
+                            args=(requested_file, addr[0], newport)
+                        )
+                        transfer_thread.start()
+                        
+                        store_file_metadata(
+                            requested_file, 
+                            os.path.getsize(requested_file),
+                            os.path.splitext(requested_file)[1], 
+                            username
+                        )
+                    else:
+                        conn.sendall(b"ERROR: File not found")
+                        print(f"File {requested_file} not found.")
+            except Exception as e:
+                print(f"Error handling request: {e}")
 
 def main():
     files = [f for f in os.listdir() if os.path.isfile(f)]  # List all files in the current directory
