@@ -139,9 +139,16 @@ def main():
         else:
             print(f"File '{filename}' not found on any peers.")
 
-    # Request files sequentially from the selected peers
+    # Request files concurrently from the selected peers
+    download_threads = []
     for peer_ip, filename in file_requests:
-        request_file(peer_ip, filename)
+        thread = threading.Thread(target=request_file, args=(peer_ip, filename))
+        thread.start()
+        download_threads.append(thread)
+
+    # Wait for all downloads to complete
+    for thread in download_threads:
+        thread.join()
 
         
 if __name__ == '__main__':
