@@ -33,7 +33,7 @@ def store_file_metadata(filename, filesize, filetype, username):
         )
         DBconn.commit()
 
-def broadcast_file_info(files, username, port=12345, interval=5, stop_event=None):
+def broadcast_file_info(files, username,  stop_event,port=12345, interval=5):
     # Broadcast information about the files being shared
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
        # sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -41,7 +41,8 @@ def broadcast_file_info(files, username, port=12345, interval=5, stop_event=None
         message = f"User: {username} | Available files: " + ", ".join(files)
         while not stop_event.is_set():
             try:
-                sock.sendto(message.encode(), ('<broadcast>', port))
+               # sock.sendto(message.encode(), ('<broadcast>', port))
+                sock.sendto(message.encode(), ('127.0.0.1', port))
                 print(f"Broadcasting: {message}")
                 time.sleep(interval)  # Sleep to prevent network spamming
             except Exception as e:
@@ -97,16 +98,27 @@ def main():
     # Start broadcasting file info in a separate thread
     stop_event = threading.Event() 
     broadcastThread = threading.Thread(target=broadcast_file_info, args=(files, username,stop_event))
-    broadcastThread.start()
-
     timer_thread = threading.Thread(target=stop_broadcast_after_timeout, args=(stop_event,))
-    timer_thread.start()
 
+    try:
+        # Start threads
+        broadcastThread.start()
+        timer_thread.start()
 
-    # Start listening for file requests
-    listen_for_requests(12345, username)
-    timer_thread.join()
-    broadcastThread.join()
+        # Start listening for file requests
+        listen_for_requests(12345, username)
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+        stop_event.set()  # Signal threads to stop
+    except Exception as e:
+        print(f"Error: {e}")
+        stop_event.set()
+    finally:
+        # Wait for threads to finish
+        broadcastThread.join()
+        timer_thread.join()
+        print("Cleanup complete")
+        DBconn.close()
     
 
 if __name__ == '__main__':
