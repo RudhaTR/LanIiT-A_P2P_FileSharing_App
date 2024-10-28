@@ -1,6 +1,7 @@
 import socket
 import threading
 import time
+import os
 
 peers = {} # Dictionary to store discovered peers and their shared files
 
@@ -58,7 +59,7 @@ def display_files():
 
 import socket
 
-def request_file(peer_ip, filename, main_port=12345):
+def request_file(peer_ip, filename,download_folder = os.getcwd, main_port=12345):
     # Connect to peer on the main port to request the file
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         try:
@@ -72,14 +73,14 @@ def request_file(peer_ip, filename, main_port=12345):
                 new_port = int(sock.recv(1024).decode())  # Receive the new port for file transfer
                 print(f"File '{filename}' available on port {new_port}. Initiating download...")
                 time.sleep(0.5)# time for sender to setup socket
-                receive_file(peer_ip, new_port, filename)
+                receive_file(peer_ip, new_port, filename,download_folder)
             else:
                 print(f"File '{filename}' not available from {peer_ip}")
         except Exception as e:
             print(f"Error connecting to {peer_ip} for file '{filename}': {e}")
 
 
-def receive_file(peer_ip, port, filename):
+def receive_file(peer_ip, port, filename, download_folder):
     max_retries = 5
     retry_delay = 1  # seconds
     
@@ -89,7 +90,7 @@ def receive_file(peer_ip, port, filename):
                 print(f"Attempting to connect to {peer_ip}:{port} (Attempt {attempt + 1}/{max_retries})")
                 file_sock.connect((peer_ip, port))
                 
-                local_filename = f"{peer_ip}_{filename}"
+                local_filename = os.path.join(download_folder,f"{peer_ip}_{filename}")
                 with open(local_filename, 'wb') as f:
                     print(f"Receiving file '{filename}' from {peer_ip}...")
                     while True:
@@ -114,6 +115,7 @@ def receive_file(peer_ip, port, filename):
 
 def main():
 
+    download_folder = r"E:\MYFILES\Study\Sem5\CN\project\testing"  # Default Folder to save downloaded files
     # Start peer discovery in a separate thread
     discovery_thread = threading.Thread(target=broadcast_discovery)
     discovery_thread.start()
@@ -142,7 +144,7 @@ def main():
     # Request files concurrently from the selected peers
     download_threads = []
     for peer_ip, filename in file_requests:
-        thread = threading.Thread(target=request_file, args=(peer_ip, filename))
+        thread = threading.Thread(target=request_file, args=(peer_ip, filename,download_folder))
         thread.start()
         download_threads.append(thread)
 
