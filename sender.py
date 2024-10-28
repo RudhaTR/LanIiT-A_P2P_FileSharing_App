@@ -184,7 +184,7 @@ def main():
     stop_event = threading.Event() 
     broadcastThread = threading.Thread(target=broadcast_file_info, args=(file_names, username,stop_event))
     timer_thread = threading.Thread(target=stop_broadcast_after_timeout, args=(stop_event,))
-    listener_thread = threading.Thread(target=listen_for_requests, args=(12345, username, stop_event,file_dict))
+    listener_thread = threading.Thread(target=listen_for_requests, args=(12346, username, stop_event,file_dict))
 
     try:
         # Start threads

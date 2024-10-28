@@ -57,9 +57,9 @@ def display_files():
         print(f"Peer: {info['username']} ({peer_ip})")
         print("Files: ", ", ".join(info['files']))
 
-import socket
 
-def request_file(peer_ip, filename,download_folder = os.getcwd, main_port=12345):
+
+def request_file(peer_ip, filename,download_folder = os.getcwd, main_port=12346):
     # Connect to peer on the main port to request the file
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         try:
