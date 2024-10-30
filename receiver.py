@@ -93,13 +93,23 @@ def receive_file(peer_ip, port, filename, download_folder):
                 local_filename = os.path.join(download_folder,f"{peer_ip}_{filename}")
                 with open(local_filename, 'wb') as f:
                     print(f"Receiving file '{filename}' from {peer_ip}...")
+
+                    startTime = time.time()
                     while True:
-                        data = file_sock.recv(4096)
+                        data = file_sock.recv(4096*8)
                         if not data:
                             break
                         f.write(data)
+                
+
+                endTime = time.time()
+                speed = (os.path.getsize(local_filename) / (endTime - startTime) / (1024))/1024
+
                 print(f"File '{filename}' received and saved as '{local_filename}'")
+                print(f"File transfer rate is {speed:.2f} MB/s")
                 return True
+            
+
         except ConnectionRefusedError:
             if attempt < max_retries - 1:
                 print(f"Connection failed, retrying in {retry_delay} seconds...")

@@ -118,12 +118,22 @@ def send_file(filepath, recipient_ip, transfer_socket): #Need to send the nwe po
             with open(filepath, 'rb') as f:
                 filename = os.path.basename(filepath)
                 print(f"Sending {filename} to {recipient_ip}...")
+
+                startTime = time.time()
+                
                 while True:
-                    chunk = f.read(4096)
+                    chunk = f.read(4096*8)
                     if not chunk:
                         break
                     conn.sendall(chunk)
+
+                endTime = time.time()
+                
                 print(f"File {filename} sent to {recipient_ip}")
+                if(endTime - startTime != 0):
+                    speed = os.path.getsize(filepath) / (endTime - startTime) / (1024 * 1024)
+                    print(f"File transfer rate is {speed:.2f} MB/s")
+                
     except Exception as e:
         print(f"Failed to send {filename} to {recipient_ip}: {e}")
     finally:
