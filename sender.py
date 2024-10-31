@@ -87,7 +87,7 @@ def broadcast_file_info(files, username,  stop_event,port=12345, interval=5):
         message = f"User: {username} | Available files: " + ", ".join(files)
         while not stop_event.is_set():
             try:
-                sock.sendto(message.encode(), ('<broadcast>', port))
+                sock.sendto(message.encode(), ('192.168.0.255', port))
                # sock.sendto(message.encode(), ('127.0.0.1', port))
                 print(f"Broadcasting: {message}")
                # time.sleep(interval)  # Sleep to prevent network spamming
