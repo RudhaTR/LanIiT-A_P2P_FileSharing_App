@@ -28,12 +28,11 @@ def get_files_from_user(username):
 
 def main():
     initialize_tables()
+    stop_event = threading.Event() 
     try:
         username = "user123"  # Replace with actual username from the login process
         broadcast_address = None
-        ip, netmask = get_wifi_ip_and_subnet()
-        if ip and netmask:
-            broadcast_address = calculate_broadcast_address(ip, netmask)
+        
         file_metadata = retrieve_file_metadata(username)  # Display files available for sharing
         user_files = get_files_from_user(username)  # Get files from user
         file_dict = {file['name']: file['path'] for file in user_files}
@@ -43,7 +42,10 @@ def main():
         file_names = list(file_dict.keys())  # Extract file names for broadcasting
     
         # Start broadcasting file info in a separate thread
-        stop_event = threading.Event() 
+        
+        ip, netmask = get_wifi_ip_and_subnet()
+        if ip and netmask:
+            broadcast_address = calculate_broadcast_address(ip, netmask)
         broadcastThread = threading.Thread(target=broadcast_file_info, args=(file_names, username,stop_event,broadcast_address))
         #broadcastThread = threading.Thread(target=multicast_file_info, args=(file_names, username,stop_event))
         timer_thread = threading.Thread(target=stop_broadcast_after_timeout, args=(stop_event,))
