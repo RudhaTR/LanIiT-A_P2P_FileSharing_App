@@ -8,7 +8,7 @@ import psutil
 import queue
 from db_utils import store_file_metadata, retrieve_file_metadata,initialize_tables
 
-
+#-------------------------------------------------------------------SENDER FUNCTIONS------------------------------------------------------------------------------------------------------------------------------
 def get_wifi_ip_and_subnet():
     # Get all network interfaces and their addresses
     interfaces = psutil.net_if_addrs()
@@ -177,7 +177,7 @@ def listen_for_requests(port, username,stop_event,file_dict):
             except Exception as e:
                 print(f"Error handling request: {e}")
 
-
+#------------------------------------------------------------------------RECEIVER FUNCTIONS------------------------------------------------------------------------------------------------------------------------------
 def broadcast_discovery(q,port=12345, discovery_time=10):
     # Broadcasts user presence on the LAN
      peerList = {}
