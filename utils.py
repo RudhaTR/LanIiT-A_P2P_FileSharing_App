@@ -127,7 +127,7 @@ def send_file(filepath, recipient_ip, transfer_socket): #Need to send the nwe po
                 startTime = time.time()
                 
                 while True:
-                    chunk = f.read(4096*8)
+                    chunk = f.read(65535)
                     if not chunk:
                         break
                     conn.sendall(chunk)
@@ -307,7 +307,7 @@ def receive_file(peer_ip, port, filename, download_folder):
 
                     startTime = time.time()
                     while True:
-                        data = file_sock.recv(4096*8)
+                        data = file_sock.recv(65535)
                         if not data:
                             break
                         f.write(data)
