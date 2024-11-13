@@ -53,7 +53,7 @@ def multicast_discovery(port=12345, discovery_time=10,multicast_group='224.0.0.1
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, multicast_request)
 
             sock.settimeout(10)  # Set a 10-second timeout for recvfrom()
-            print("Listening for peer broadcasts...")
+            print("Listening for peer broadcasts(multicast)...")
             
             # Discover peers broadcasting within a time window
             try:
@@ -166,7 +166,8 @@ def main():
 
     download_folder = r"E:\MYFILES\Study\Sem5\CN\project\testing"  # Default Folder to save downloaded files
     # Start peer discovery in a separate thread
-    discovery_thread = threading.Thread(target=broadcast_discovery)
+    #discovery_thread = threading.Thread(target=broadcast_discovery)
+    discovery_thread = threading.Thread(target=multicast_discovery)
     discovery_thread.start()
     discovery_thread.join()  # Wait for discovery to complete
 

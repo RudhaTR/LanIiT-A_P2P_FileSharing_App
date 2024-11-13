@@ -115,7 +115,7 @@ def multicast_file_info(files, username, stop_event, port=12345, interval=5,mult
             try:
                 sock.sendto(message.encode(), (multicast_group, port))
       
-                print(f"Broadcasting: {message}")
+                print(f"Broadcasting(multicast): {message}")
                # time.sleep(interval)  # Sleep to prevent network spamming
                 total_time = 0
                 while total_time < interval and not stop_event.is_set():
@@ -218,7 +218,8 @@ def main():
 
     # Start broadcasting file info in a separate thread
     stop_event = threading.Event() 
-    broadcastThread = threading.Thread(target=broadcast_file_info, args=(file_names, username,stop_event))
+    #broadcastThread = threading.Thread(target=broadcast_file_info, args=(file_names, username,stop_event))
+    broadcastThread = threading.Thread(target=multicast_file_info, args=(file_names, username,stop_event))
     timer_thread = threading.Thread(target=stop_broadcast_after_timeout, args=(stop_event,))
     listener_thread = threading.Thread(target=listen_for_requests, args=(12346, username, stop_event,file_dict))
 
