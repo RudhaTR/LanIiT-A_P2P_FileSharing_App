@@ -44,7 +44,7 @@ def broadcast_message(message):
         print(f"Broadcasting to {broadcast_address}...")
         
         # Create a UDP socket and broadcast the message
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP) as sock:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.sendto(message.encode(), (broadcast_address, 5005))  # 5005 is an example port
@@ -68,10 +68,9 @@ def receive_broadcast(port=5005, timeout=10):
         print(f"Listening for broadcast messages on port {port}...")
 
         try:
-            while True:
                 # Receive data from the socket (blocking)
-                data, addr = sock.recvfrom(1024)  # Buffer size of 1024 bytes
-                print(f"Received message: {data.decode()} from {addr}")
+            data, addr = sock.recvfrom(1024)  # Buffer size of 1024 bytes
+            print(f"Received message: {data.decode()} from {addr}")
         except socket.timeout:
             print(f"Timeout reached ({timeout} seconds), no more messages.")
         except Exception as e:
