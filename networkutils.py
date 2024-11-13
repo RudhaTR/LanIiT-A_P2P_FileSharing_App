@@ -5,18 +5,8 @@ import sqlite3
 import hashlib
 import time
 import psutil
+import queue
 from db_utils import store_file_metadata, retrieve_file_metadata,initialize_tables
-
-
-
-
-
-
-
-
-
-
-
 
 
 def get_wifi_ip_and_subnet():
@@ -188,7 +178,7 @@ def listen_for_requests(port, username,stop_event,file_dict):
                 print(f"Error handling request: {e}")
 
 
-def broadcast_discovery(port=12345, discovery_time=10):
+def broadcast_discovery(q,port=12345, discovery_time=10):
     # Broadcasts user presence on the LAN
      peerList = {}
      with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
@@ -225,9 +215,9 @@ def broadcast_discovery(port=12345, discovery_time=10):
             print(f"Error trying to receive broadcast data : {e}")
         
         print(f"Discovery complete. Peers found: {peerList}")
-        return peerList
+        q.put(peerList)
 
-def multicast_discovery(port=12345, discovery_time=10,multicast_group='224.0.0.1'):
+def multicast_discovery(q,port=12345, discovery_time=10,multicast_group='224.0.0.1'):
     # Multicasts user presence on the LAN
     peerList = {}
 
@@ -269,7 +259,7 @@ def multicast_discovery(port=12345, discovery_time=10,multicast_group='224.0.0.1
                 print(f"Error trying to receive broadcast data : {e}")
 
             print(f"Discovery complete. Peers found: {peerList}")
-            return peerList
+            q.put(peerList)
 
 def request_file(peer_ip, filename,download_folder = os.getcwd, main_port=12346):
     # Connect to peer on the main port to request the file
