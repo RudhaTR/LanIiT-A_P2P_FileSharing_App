@@ -41,6 +41,45 @@ def broadcast_discovery(port=12345, discovery_time=10):
             print(f"Error trying to receive broadcast data : {e}")
         
         print(f"Discovery complete. Peers found: {peers}")
+
+def multicast_discovery(port=12345, discovery_time=10,multicast_group='224.0.0.1'):
+    # Multicasts user presence on the LAN
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+           # sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #testing on local host
+            sock.bind(("", port))
+
+            multicast_request = socket.inet_aton(multicast_group) + socket.inet_aton('0.0.0.0')
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, multicast_request)
+
+            sock.settimeout(10)  # Set a 10-second timeout for recvfrom()
+            print("Listening for peer broadcasts...")
+            
+            # Discover peers broadcasting within a time window
+            try:
+                start_time = time.time()
+                while time.time() - start_time < discovery_time:
+                    data, addr = sock.recvfrom(1024)
+                    message = data.decode()
+
+                    if addr[0] not in peers:
+            
+                        # Extract username and file list from the message
+                        try:
+                            parts = message.split(" | ")
+                            username = parts[0].split(": ")[1]
+                            files = parts[1].split(": ")[1].split(", ")
+
+                            print(f"Discovered peer {addr[0]} : {username}")
+                            
+                            # Store peer IP, username, and available files
+                            peers[addr[0]] = {'username': username, 'files': files}
+                        except Exception as e:
+                            print(f"Error parsing broadcast from {addr[0]}: {e}")
+            except socket.timeout:
+                pass
+            except Exception as e:
+                print(f"Error trying to receive broadcast data : {e}")
     
 
 def search_for_file(filename, peer_list):

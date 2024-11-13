@@ -86,10 +86,35 @@ def broadcast_file_info(files, username,  stop_event,port=12345, interval=5):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #testing on local host
         message = f"User: {username} | Available files: " + ", ".join(files)
+
         while not stop_event.is_set():
             try:
-                sock.sendto(message.encode(), ('<broadcast>', port))
+                sock.sendto(message.encode(), ('255.255.255.255', port))
                # sock.sendto(message.encode(), ('127.0.0.1', port))
+                print(f"Broadcasting: {message}")
+               # time.sleep(interval)  # Sleep to prevent network spamming
+                total_time = 0
+                while total_time < interval and not stop_event.is_set():
+                    time.sleep(check_interval)
+                    total_time += check_interval
+            except Exception as e:
+                print(f"Broadcast error: {e}")
+
+def multicast_file_info(files, username, stop_event, port=12345, interval=5,multicast_group='224.0.0.1'):
+    # Broadcast information about the files being shared
+    # Split sleep into smaller intervals to check stop_event more frequently
+    check_interval = 0.5  # Check every 0.5 seconds
+    total_time = 0
+
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        message = f"User: {username} | Available files: " + ", ".join(files)
+
+        while not stop_event.is_set():
+            try:
+                sock.sendto(message.encode(), (multicast_group, port))
+      
                 print(f"Broadcasting: {message}")
                # time.sleep(interval)  # Sleep to prevent network spamming
                 total_time = 0
