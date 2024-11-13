@@ -4,6 +4,7 @@ import os
 import sqlite3
 import hashlib
 import time
+import psutil
 from db_utils import store_file_metadata, retrieve_file_metadata,initialize_tables
 
 # # Set up database connection
@@ -52,6 +53,7 @@ from db_utils import store_file_metadata, retrieve_file_metadata,initialize_tabl
 #         print(f"No files available for {username}")
 #     return files
 
+
 def get_files_from_user(username):
     files = []
     while True:
@@ -69,6 +71,38 @@ def get_files_from_user(username):
             print(f"Invalid file path: {filepath}")
     return files
 
+def get_wifi_ip_and_subnet():
+    # Get all network interfaces and their addresses
+    interfaces = psutil.net_if_addrs()
+    
+    # Look for the 'Wi-Fi' interface (can also be 'WLAN' on some systems)
+    for interface_name, interface_addresses in interfaces.items():
+        if 'Wi-Fi' in interface_name:  # or 'Ethernet', adjust as per your interface name
+            for address in interface_addresses:
+                if address.family == socket.AF_INET:
+                    ip_address = address.address
+                    netmask = address.netmask
+                    return ip_address, netmask
+    return None, None
+
+def calculate_broadcast_address(ip, netmask):
+# Convert the IP address and subnet mask to binary form (each as a 32-bit integer)
+    ip_parts = list(map(int, ip.split('.')))
+    netmask_parts = list(map(int, netmask.split('.')))
+    
+    # Convert IP and subnet mask to binary 32-bit integers
+    ip_bin = sum([ip_parts[i] << (8 * (3 - i)) for i in range(4)])
+    netmask_bin = sum([netmask_parts[i] << (8 * (3 - i)) for i in range(4)])
+    
+    # Calculate broadcast address by ORing the IP with the inverse of the subnet mask
+    inverse_mask_bin = ~netmask_bin & 0xFFFFFFFF
+    broadcast_bin = ip_bin | inverse_mask_bin
+    
+    # Convert back to dotted decimal format
+    broadcast_ip = '.'.join([str((broadcast_bin >> (8 * i)) & 0xFF) for i in reversed(range(4))])
+    
+    return broadcast_ip
+
 def setup_file_transfer(port):
     # Setup a server socket for file transfer
     transfer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -76,7 +110,7 @@ def setup_file_transfer(port):
     transfer_socket.listen(1)
     return transfer_socket,transfer_socket.getsockname()[1]
 
-def broadcast_file_info(files, username,  stop_event,port=12345, interval=5):
+def broadcast_file_info(files, username, stop_event,broadcast_ip, port=12345, interval=5):
     # Broadcast information about the files being shared
     # Split sleep into smaller intervals to check stop_event more frequently
     check_interval = 0.5  # Check every 0.5 seconds
@@ -89,7 +123,7 @@ def broadcast_file_info(files, username,  stop_event,port=12345, interval=5):
 
         while not stop_event.is_set():
             try:
-                sock.sendto(message.encode(), ('255.255.255.255', port))
+                sock.sendto(message.encode(), (broadcast_ip, port))
                # sock.sendto(message.encode(), ('127.0.0.1', port))
                 print(f"Broadcasting: {message}")
                # time.sleep(interval)  # Sleep to prevent network spamming
@@ -207,23 +241,28 @@ def listen_for_requests(port, username,stop_event,file_dict):
 
 def main():
     initialize_tables()
-    username = "user123"  # Replace with actual username from the login process
-    file_metadata = retrieve_file_metadata(username)  # Display files available for sharing
-    user_files = get_files_from_user(username)  # Get files from user
-    file_dict = {file['name']: file['path'] for file in user_files}
-    for row in file_metadata:
-        file_dict[row[0]] = row[1]
-        
-    file_names = list(file_dict.keys())  # Extract file names for broadcasting
-
-    # Start broadcasting file info in a separate thread
-    stop_event = threading.Event() 
-    #broadcastThread = threading.Thread(target=broadcast_file_info, args=(file_names, username,stop_event))
-    broadcastThread = threading.Thread(target=multicast_file_info, args=(file_names, username,stop_event))
-    timer_thread = threading.Thread(target=stop_broadcast_after_timeout, args=(stop_event,))
-    listener_thread = threading.Thread(target=listen_for_requests, args=(12346, username, stop_event,file_dict))
-
     try:
+        username = "user123"  # Replace with actual username from the login process
+        broadcast_address = None
+        ip, netmask = get_wifi_ip_and_subnet()
+        if ip and netmask:
+            broadcast_address = calculate_broadcast_address(ip, netmask)
+        file_metadata = retrieve_file_metadata(username)  # Display files available for sharing
+        user_files = get_files_from_user(username)  # Get files from user
+        file_dict = {file['name']: file['path'] for file in user_files}
+        for row in file_metadata:
+            file_dict[row[0]] = row[1]
+            
+        file_names = list(file_dict.keys())  # Extract file names for broadcasting
+    
+        # Start broadcasting file info in a separate thread
+        stop_event = threading.Event() 
+        broadcastThread = threading.Thread(target=broadcast_file_info, args=(file_names, username,stop_event,broadcast_address))
+        #broadcastThread = threading.Thread(target=multicast_file_info, args=(file_names, username,stop_event))
+        timer_thread = threading.Thread(target=stop_broadcast_after_timeout, args=(stop_event,))
+        listener_thread = threading.Thread(target=listen_for_requests, args=(12346, username, stop_event,file_dict))
+
+
         # Start threads
         broadcastThread.start()
         timer_thread.start()
