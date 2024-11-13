@@ -257,8 +257,8 @@ def main():
     
         # Start broadcasting file info in a separate thread
         stop_event = threading.Event() 
-        broadcastThread = threading.Thread(target=broadcast_file_info, args=(file_names, username,stop_event,broadcast_address))
-        #broadcastThread = threading.Thread(target=multicast_file_info, args=(file_names, username,stop_event))
+        #broadcastThread = threading.Thread(target=broadcast_file_info, args=(file_names, username,stop_event,broadcast_address))
+        broadcastThread = threading.Thread(target=multicast_file_info, args=(file_names, username,stop_event))
         timer_thread = threading.Thread(target=stop_broadcast_after_timeout, args=(stop_event,))
         listener_thread = threading.Thread(target=listen_for_requests, args=(12346, username, stop_event,file_dict))
 

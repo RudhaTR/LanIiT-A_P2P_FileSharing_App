@@ -90,8 +90,34 @@ def clientTesting():
     print("Connected to server")
     s.close()
 
+def check_multicast_support(multicast_group="224.0.0.1", port=5007):
+    try:
+        # Create a UDP socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+
+        # Allow multiple sockets to use the same port number
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # Bind to a specific port and all network interfaces
+        sock.bind(('', port))
+
+        # Try to join a multicast group
+        mreq = socket.inet_aton(multicast_group) + socket.inet_aton('0.0.0.0')
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        
+        print("Multicast is supported.")
+        return True
+
+    except OSError as e:
+        print(f"Multicast is not supported: {e}")
+        return False
+
+    finally:
+        sock.close()
 # Example usage
 #receive_broadcast(port=5005)
 
 # Example usage
-broadcast_message("Hello, this is a broadcast message")
+#broadcast_message("Hello, this is a broadcast message")
+
+check_multicast_support()
