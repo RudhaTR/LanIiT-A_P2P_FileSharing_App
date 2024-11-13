@@ -9,9 +9,9 @@ import queue
 from db_utils import store_file_metadata, retrieve_file_metadata,initialize_tables
 import gzip
 import shutil
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import padding
+# from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+# from cryptography.hazmat.backends import default_backend
+# from cryptography.hazmat.primitives import padding
 
 #-------------------------------------------------------------------SENDER FUNCTIONS------------------------------------------------------------------------------------------------------------------------------
 def get_wifi_ip_and_subnet():
