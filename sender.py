@@ -4,52 +4,53 @@ import os
 import sqlite3
 import hashlib
 import time
+from db_utils import store_file_metadata, retrieve_file_metadata,initialize_tables
 
-# Set up database connection
-DBconn = sqlite3.connect('p2p_system.db', check_same_thread=False)
-cursor = DBconn.cursor()
+# # Set up database connection
+# DBconn = sqlite3.connect('p2p_system.db', check_same_thread=False)
+# cursor = DBconn.cursor()
 
-# Create the files table
-cursor.execute(
-    '''CREATE TABLE IF NOT EXISTS files (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT NOT NULL,
-        filesize INTEGER NOT NULL,
-        filetype TEXT NOT NULL,
-        filepath TEXT NOT NULL,
-        username TEXT NOT NULL,
-        upload_date DATETIME DEFAULT CURRENT_TIMESTAMP)'''
-)
-DBconn.commit()
+# # Create the files table
+# cursor.execute(
+#     '''CREATE TABLE IF NOT EXISTS files (
+#         id INTEGER PRIMARY KEY AUTOINCREMENT,
+#         filename TEXT NOT NULL,
+#         filesize INTEGER NOT NULL,
+#         filetype TEXT NOT NULL,
+#         filepath TEXT NOT NULL,
+#         username TEXT NOT NULL,
+#         upload_date DATETIME DEFAULT CURRENT_TIMESTAMP)'''
+# )
+# DBconn.commit()
 
-# Lock for thread-safe DB operations
-db_lock = threading.Lock()
+# # Lock for thread-safe DB operations
+# db_lock = threading.Lock()
 
-def store_file_metadata(filename, filesize, filetype, filepath,username):
-    with db_lock:
-        cursor.execute("SELECT * FROM files WHERE filename = ?", (filename,))
-        if cursor.fetchone() is None:
-            cursor.execute(
-                '''INSERT INTO files (filename, filesize, filetype,filepath, username) 
-                VALUES (?, ?, ?, ?,?)''',
-                (filename, filesize, filetype,filepath,username)
-            )
-        DBconn.commit()
+# def store_file_metadata(filename, filesize, filetype, filepath,username):
+#     with db_lock:
+#         cursor.execute("SELECT * FROM files WHERE filename = ?", (filename,))
+#         if cursor.fetchone() is None:
+#             cursor.execute(
+#                 '''INSERT INTO files (filename, filesize, filetype,filepath, username) 
+#                 VALUES (?, ?, ?, ?,?)''',
+#                 (filename, filesize, filetype,filepath,username)
+#             )
+#         DBconn.commit()
 
-def retrieve_file_metadata(username):
-    retrieve_file = None
-    with db_lock:
-        retrieve_file = cursor.execute("SELECT filename,filepath FROM files WHERE username = ?", (username,))
+# def retrieve_file_metadata(username):
+#     retrieve_file = None
+#     with db_lock:
+#         retrieve_file = cursor.execute("SELECT filename,filepath FROM files WHERE username = ?", (username,))
     
-    files = retrieve_file.fetchall()
+#     files = retrieve_file.fetchall()
 
-    if files:
-        print(f"Files available for {username}:")
-        for row in files:
-            print(row[0])  # row[0] contains the filename since we only selected "filename"
-    else:
-        print(f"No files available for {username}")
-    return files
+#     if files:
+#         print(f"Files available for {username}:")
+#         for row in files:
+#             print(row[0])  # row[0] contains the filename since we only selected "filename"
+#     else:
+#         print(f"No files available for {username}")
+#     return files
 
 def get_files_from_user(username):
     files = []
@@ -87,7 +88,7 @@ def broadcast_file_info(files, username,  stop_event,port=12345, interval=5):
         message = f"User: {username} | Available files: " + ", ".join(files)
         while not stop_event.is_set():
             try:
-                sock.sendto(message.encode(), ('192.168.0.255', port))
+                sock.sendto(message.encode(), ('<broadcast>', port))
                # sock.sendto(message.encode(), ('127.0.0.1', port))
                 print(f"Broadcasting: {message}")
                # time.sleep(interval)  # Sleep to prevent network spamming
@@ -180,7 +181,7 @@ def listen_for_requests(port, username,stop_event,file_dict):
                 print(f"Error handling request: {e}")
 
 def main():
-    
+    initialize_tables()
     username = "user123"  # Replace with actual username from the login process
     file_metadata = retrieve_file_metadata(username)  # Display files available for sharing
     user_files = get_files_from_user(username)  # Get files from user
@@ -218,7 +219,7 @@ def main():
         timer_thread.join()
         listener_thread.join()
         print("Cleanup complete")
-        DBconn.close()
+       # DBconn.close()
     
 
 if __name__ == '__main__':
