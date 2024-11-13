@@ -80,6 +80,8 @@ def multicast_discovery(port=12345, discovery_time=10,multicast_group='224.0.0.1
                 pass
             except Exception as e:
                 print(f"Error trying to receive broadcast data : {e}")
+
+            print(f"Discovery complete. Peers found: {peers}")
     
 
 def search_for_file(filename, peer_list):
