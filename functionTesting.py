@@ -2,6 +2,9 @@ import socket
 import struct
 import psutil
 
+
+
+
 def get_wifi_ip_and_subnet():
     # Get all network interfaces and their addresses
     interfaces = psutil.net_if_addrs()
@@ -17,21 +20,20 @@ def get_wifi_ip_and_subnet():
     return None, None
 
 def calculate_broadcast_address(ip, netmask):
-    # Convert the IP address and subnet mask to binary
+# Convert the IP address and subnet mask to binary form (each as a 32-bit integer)
     ip_parts = list(map(int, ip.split('.')))
     netmask_parts = list(map(int, netmask.split('.')))
     
-    ip_binary = ''.join([bin(part)[2:].zfill(8) for part in ip_parts])
-    netmask_binary = ''.join([bin(part)[2:].zfill(8) for part in netmask_parts])
+    # Convert IP and subnet mask to binary 32-bit integers
+    ip_bin = sum([ip_parts[i] << (8 * (3 - i)) for i in range(4)])
+    netmask_bin = sum([netmask_parts[i] << (8 * (3 - i)) for i in range(4)])
     
-    # Calculate the network address by doing a bitwise AND
-    network_binary = ''.join([str(int(ip_binary[i]) & int(netmask_binary[i])) for i in range(32)])
+    # Calculate broadcast address by ORing the IP with the inverse of the subnet mask
+    inverse_mask_bin = ~netmask_bin & 0xFFFFFFFF
+    broadcast_bin = ip_bin | inverse_mask_bin
     
-    # The broadcast address is the network address with the inverse of the netmask
-    broadcast_binary = network_binary[:len(netmask_binary)] + '1' * (32 - len(netmask_binary))
-    
-    # Convert the broadcast address back to the dotted decimal format
-    broadcast_ip = '.'.join([str(int(broadcast_binary[i:i+8], 2)) for i in range(0, 32, 8)])
+    # Convert back to dotted decimal format
+    broadcast_ip = '.'.join([str((broadcast_bin >> (8 * i)) & 0xFF) for i in reversed(range(4))])
     
     return broadcast_ip
 
@@ -45,7 +47,7 @@ def broadcast_message(message):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.sendto(message.encode(), (broadcast_address, 12345))  # 5005 is an example port
+            sock.sendto(message.encode(), (broadcast_address, 5005))  # 5005 is an example port
     else:
         print("No Wi-Fi interface found.")
 
@@ -74,6 +76,20 @@ def receive_broadcast(port=5005, timeout=10):
             print(f"Timeout reached ({timeout} seconds), no more messages.")
         except Exception as e:
             print(f"Error receiving broadcast: {e}")
+
+def serverTesting():
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(("0.0.0.0", 5000))  # Bind to all interfaces on port 5000
+    server_socket.listen(1)
+    print("Server listening on port 5000")
+    conn, addr = server_socket.accept()
+    print("Connection from:", addr)
+
+def clientTesting():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect(('192.168.1.x', 12345))  # Replace with server's IP
+    print("Connected to server")
+    s.close()
 
 # Example usage
 #receive_broadcast(port=5005)
