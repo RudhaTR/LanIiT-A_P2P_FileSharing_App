@@ -3,7 +3,7 @@ import threading
 import time
 import os
 import queue
-from networkutils import broadcast_discovery, multicast_discovery, request_file
+from utils import broadcast_discovery, multicast_discovery, request_file
         
 def search_for_file(filename, peers):
     # Function to search for files from discovered peers
@@ -26,8 +26,8 @@ def main():
     download_folder = r"E:\MYFILES\Study\Sem5\CN\project\testing"  # Default Folder to save downloaded files
     q = queue.Queue()
     # Start peer discovery in a separate thread
-    #discovery_thread = threading.Thread(target=broadcast_discovery, args=(q,))
-    discovery_thread = threading.Thread(target=multicast_discovery, args=(q,))
+    discovery_thread = threading.Thread(target=broadcast_discovery, args=(q,))
+    #discovery_thread = threading.Thread(target=multicast_discovery, args=(q,))
     discovery_thread.start()
     discovery_thread.join()  # Wait for discovery to complete
 

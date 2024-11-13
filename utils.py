@@ -7,6 +7,11 @@ import time
 import psutil
 import queue
 from db_utils import store_file_metadata, retrieve_file_metadata,initialize_tables
+import gzip
+import shutil
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import padding
 
 #-------------------------------------------------------------------SENDER FUNCTIONS------------------------------------------------------------------------------------------------------------------------------
 def get_wifi_ip_and_subnet():
@@ -109,12 +114,14 @@ def stop_broadcast_after_timeout(stop_event, timeout=180):
 def send_file(filepath, recipient_ip, transfer_socket): #Need to send the nwe port to the recipient so it can connect to it to recieve files and still send the file name reqd
     # Send the file in chunks to avoid memory overload
     port = transfer_socket.getsockname()[1]
+    filename = os.path.basename(filepath)
     try:
         print(f"Waiting for connection on port {port}...")
         conn, addr = transfer_socket.accept()
         with conn:
-            with open(filepath, 'rb') as f:
-                filename = os.path.basename(filepath)
+            compressedFilePath = compressFile(filepath)
+
+            with open(compressedFilePath, 'rb') as f:
                 print(f"Sending {filename} to {recipient_ip}...")
 
                 startTime = time.time()
@@ -125,12 +132,13 @@ def send_file(filepath, recipient_ip, transfer_socket): #Need to send the nwe po
                         break
                     conn.sendall(chunk)
 
-                endTime = time.time()
-                
-                print(f"File {filename} sent to {recipient_ip}")
-                if(endTime - startTime != 0):
-                    speed = os.path.getsize(filepath) / (endTime - startTime) / (1024 * 1024)
-                    print(f"File transfer rate is {speed:.2f} MB/s")
+        endTime = time.time()
+
+        cleanup_file(compressedFilePath)
+        print(f"File {filename} sent to {recipient_ip}")
+        if(endTime - startTime != 0):
+                speed = os.path.getsize(filepath) / (endTime - startTime) / (1024 * 1024)
+                print(f"File transfer rate is {speed:.2f} MB/s")
                 
     except Exception as e:
         print(f"Failed to send {filename} to {recipient_ip}: {e}")
@@ -293,7 +301,8 @@ def receive_file(peer_ip, port, filename, download_folder):
                 file_sock.connect((peer_ip, port))
                 
                 local_filename = os.path.join(download_folder,f"{peer_ip}_{filename}")
-                with open(local_filename, 'wb') as f:
+                local_filename_compressed = local_filename + '.gz'
+                with open(local_filename_compressed, 'wb') as f:
                     print(f"Receiving file '{filename}' from {peer_ip}...")
 
                     startTime = time.time()
@@ -304,12 +313,14 @@ def receive_file(peer_ip, port, filename, download_folder):
                         f.write(data)
                 
 
-                endTime = time.time()
-                speed = (os.path.getsize(local_filename) / (endTime - startTime) / (1024))/1024
+            endTime = time.time()
+            decompressFile(local_filename_compressed,local_filename)
+            cleanup_file(local_filename_compressed)
 
-                print(f"File '{filename}' received and saved as '{local_filename}'")
-                print(f"File transfer rate is {speed:.2f} MB/s")
-                return True
+            speed = (os.path.getsize(local_filename) / (endTime - startTime) / (1024))/1024
+            print(f"File '{filename}' received and saved as '{local_filename}'")
+            print(f"File transfer rate is {speed:.2f} MB/s")
+            return True
             
 
         except ConnectionRefusedError:
@@ -325,3 +336,26 @@ def receive_file(peer_ip, port, filename, download_folder):
         
 
 #---------------------------------------------------------------UTILITY FUNCTIONS------------------------------------------------------------------------------------------------------------------------------
+
+
+def cleanup_file(file_path):
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        print(f"Temporary file deleted: {file_path}")
+
+
+def compressFile(filepath):
+    temp_path = filepath + '.gz'
+    
+    with open(filepath, 'rb') as original_file:
+        with gzip.open(temp_path, 'wb') as compressed_file:
+            shutil.copyfileobj(original_file, compressed_file)
+    
+    return temp_path  # Return path to the compressed file
+    
+def decompressFile(compressed_path, output_path):
+
+    with gzip.open(compressed_path, 'rb') as compressed_file:
+        with open(output_path, 'wb') as decompressed_file:
+            shutil.copyfileobj(compressed_file, decompressed_file)
+

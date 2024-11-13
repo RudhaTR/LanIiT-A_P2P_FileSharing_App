@@ -6,7 +6,7 @@ import hashlib
 import time
 import psutil
 from db_utils import store_file_metadata, retrieve_file_metadata,initialize_tables
-from networkutils import get_wifi_ip_and_subnet, calculate_broadcast_address, broadcast_file_info, multicast_file_info, stop_broadcast_after_timeout,listen_for_requests
+from utils import get_wifi_ip_and_subnet, calculate_broadcast_address, broadcast_file_info, multicast_file_info, stop_broadcast_after_timeout,listen_for_requests
 
 
 def get_files_from_user(username):
