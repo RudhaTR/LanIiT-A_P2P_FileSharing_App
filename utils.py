@@ -115,12 +115,13 @@ def send_file(filepath, recipient_ip, transfer_socket): #Need to send the nwe po
     # Send the file in chunks to avoid memory overload
     port = transfer_socket.getsockname()[1]
     filename = os.path.basename(filepath)
+   
     try:
         print(f"Waiting for connection on port {port}...")
         conn, addr = transfer_socket.accept()
+        compressedFilePath = compressFile(filepath)
         with conn:
-            compressedFilePath = compressFile(filepath)
-
+    
             with open(compressedFilePath, 'rb') as f:
                 print(f"Sending {filename} to {recipient_ip}...")
 
@@ -313,9 +314,9 @@ def receive_file(peer_ip, port, filename, download_folder):
                         f.write(data)
                 
 
-            endTime = time.time()
-            decompressFile(local_filename_compressed,local_filename)
-            cleanup_file(local_filename_compressed)
+                endTime = time.time()
+                decompressFile(local_filename_compressed,local_filename)
+                cleanup_file(local_filename_compressed)
 
             speed = (os.path.getsize(local_filename) / (endTime - startTime) / (1024))/1024
             print(f"File '{filename}' received and saved as '{local_filename}'")
