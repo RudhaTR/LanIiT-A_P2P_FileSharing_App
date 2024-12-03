@@ -1,6 +1,7 @@
 from db_utils import loginUser, registerUser,retrieve_file_metadata
 import sender
 import receiver
+import globalLogger
 
 def handle_login(username, password):
     if loginUser(username, password):
@@ -31,3 +32,13 @@ def AddFileTodatabase(username,filepath):
 
 def startSending(username):
     sender.guiMain(username)
+
+def Messages():
+    try:
+        message = globalLogger.receiveMessageSender()
+        if message is not None:
+            return message
+        else:
+            return None
+    except Exception as e:
+        print("Error in Messages: ",e)
