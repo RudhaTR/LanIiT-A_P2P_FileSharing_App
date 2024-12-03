@@ -9,6 +9,7 @@ import queue
 from db_utils import store_file_metadata, retrieve_file_metadata,initialize_tables
 import gzip
 import shutil
+import globalLogger
 # from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 # from cryptography.hazmat.backends import default_backend
 # from cryptography.hazmat.primitives import padding
@@ -120,6 +121,7 @@ def send_file(filepath, recipient_ip, transfer_socket): #Need to send the nwe po
         print(f"Waiting for connection on port {port}...")
         conn, addr = transfer_socket.accept()
         compressedFilePath = compressFile(filepath)
+        giveGuiInfoToSender(filename,recipient_ip)
         with conn:
     
             with open(compressedFilePath, 'rb') as f:
@@ -136,10 +138,15 @@ def send_file(filepath, recipient_ip, transfer_socket): #Need to send the nwe po
         endTime = time.time()
 
         cleanup_file(compressedFilePath)
+        
         print(f"File {filename} sent to {recipient_ip}")
         if(endTime - startTime != 0):
                 speed = os.path.getsize(filepath) / (endTime - startTime) / (1024 * 1024)
                 print(f"File transfer rate is {speed:.2f} MB/s")
+                giveGuiInfoToSender(filename,recipient_ip,speed,end=1)
+        else:
+            giveGuiInfoToSender(filename,recipient_ip,end=1)
+        
                 
     except Exception as e:
         print(f"Failed to send {filename} to {recipient_ip}: {e}")
@@ -359,4 +366,20 @@ def decompressFile(compressed_path, output_path):
     with gzip.open(compressed_path, 'rb') as compressed_file:
         with open(output_path, 'wb') as decompressed_file:
             shutil.copyfileobj(compressed_file, decompressed_file)
+
+def  giveGuiInfoToSender(filename,recipient_ip,speed=0,end=0):
+    try:
+        message = ""
+        if(end == 0):
+            message = "Started sending file " + filename + " to " + recipient_ip
+            globalLogger.sendMessageSender(message)
+        else:
+            if(speed!=0):
+                message = "Finished sending file " + filename + " to " + recipient_ip + " with speed " + "{0.2f}".format(speed) + " MB/s"
+            else:
+                message = "Finished sending file " + filename + " to " + recipient_ip
+
+        globalLogger.sendMessageSender(message)
+    except Exception as e:
+        print(f"Error in giving info to sender: {e}")
 
