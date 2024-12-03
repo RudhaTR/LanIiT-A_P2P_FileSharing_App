@@ -372,7 +372,6 @@ def  giveGuiInfoToSender(filename,recipient_ip,speed=0,end=0):
         message = ""
         if(end == 0):
             message = "Started sending file " + filename + " to " + recipient_ip
-            globalLogger.sendMessageSender(message)
         else:
             if(speed!=0):
                 message = "Finished sending file " + filename + " to " + recipient_ip + " with speed " + "{0.2f}".format(speed) + " MB/s"
