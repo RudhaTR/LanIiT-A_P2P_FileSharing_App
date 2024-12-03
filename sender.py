@@ -75,6 +75,8 @@ def guiMain(username):
         ]
         for thread in threads:
                 thread.start()
+
+        return stop_event
     except Exception as e:
         print(f"Error: {e}")
         '''

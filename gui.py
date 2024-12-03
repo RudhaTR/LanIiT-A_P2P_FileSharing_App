@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, filedialog
-from controller import handle_login, handle_registration, handle_mode_selection, getFiles,AddFileTodatabase,startSending,Messages
+from controller import handle_login, handle_registration, handle_mode_selection, getFiles,AddFileTodatabase,startSending,Messages,stopSending
 import os
 import globalLogger
 
@@ -74,6 +74,8 @@ def open_sender_window(username,root):
     window.title("Sender Window")
     window.geometry("800x400")
 
+    is_sending = False  # Initially, sending is not in progress
+
     def populate_files():
         file_listbox.delete(0, tk.END)  # Clear the listbox
         files_to_send = getFiles(username)  # Fetch the files from the backend
@@ -92,9 +94,11 @@ def open_sender_window(username,root):
 
     # Function to handle sending files
     def send_files():
+        nonlocal is_sending
         # This is where you would integrate file sending functionality
         startSending(username)  # Call backend function to start sending
         status_text.insert(tk.END, "Sending files...\n")  # Show that sending has started
+        is_sending = True
 
     def update_status():
         try:
@@ -104,16 +108,23 @@ def open_sender_window(username,root):
                 status_text.yview('end')  # Scroll to the end of the text widget
 
             # Call update_status again after 100ms (or any interval you prefer)
-            window.after(100, update_status)
+            if window.winfo_exists():
+                window.after(100, update_status)
         except Exception as e:
             print("Error in update_status: ",e)
+    
+    def go_back_to_sender_receiver():
+        nonlocal is_sending
+        if(is_sending):
+            stopSending()
+        open_sender_receiver_window(username,window)
 
     # Create frames for layout
     frame1 = tk.Frame(window)
     frame1.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
 
     frame2 = tk.Frame(window)
-    frame2.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
+    frame2.grid(row=0, column=1, padx=20, pady=25, sticky="nsew")
 
     # Configure column weights to make the frames expand properly
     window.grid_columnconfigure(0, weight=3)
@@ -129,20 +140,24 @@ def open_sender_window(username,root):
     available_files_label.pack(pady=5)
 
     file_listbox = tk.Listbox(frame1, height=15, width=40)
-    file_listbox.pack(pady=10)
+    file_listbox.pack(pady=5)
 
     # Send button (at the bottom of the first column)
     send_button = tk.Button(frame1, text="Send Files", command=send_files)
-    send_button.pack(pady=10)
+    send_button.pack(pady=5)
 
     # Frame 2 (Second column) - for displaying the sending status
     status_label = tk.Label(frame2, text="Sending Status", font=("Arial", 12))
     status_label.pack(pady=5)
 
     status_text = tk.Text(frame2, height=15, width=30)
-    status_text.pack(pady=10)
+    status_text.pack(pady=5)
 
-    window.after(100, update_status)  # Start checking for log messages every 100ms
+    go_back_to_sender_receiver_button = tk.Button(frame2, text="Go Back", command=lambda: go_back_to_sender_receiver())
+    go_back_to_sender_receiver_button.pack(pady=5)
+
+    if(window.winfo_exists()):
+        window.after(100, update_status)  # Start checking for log messages every 100ms
 
     # Function to populate the listbox with current files
     

@@ -2,6 +2,12 @@ from db_utils import loginUser, registerUser,retrieve_file_metadata
 import sender
 import receiver
 import globalLogger
+import threading
+
+
+
+def stopSending():
+    currstopevent.set()
 
 def handle_login(username, password):
     if loginUser(username, password):
@@ -31,7 +37,8 @@ def AddFileTodatabase(username,filepath):
     sender.add_files_from_user_gui(username,filepath)
 
 def startSending(username):
-    sender.guiMain(username)
+    global currstopevent 
+    currstopevent = sender.guiMain(username)
 
 def Messages():
     try:
