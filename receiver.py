@@ -57,8 +57,8 @@ def guiReceiver(selected_files,download_folder):
 
     # Request files concurrently from the selected peers
     download_threads = []
-    for peer_ip, filename in file_requests:
-        thread = threading.Thread(target=request_file, args=(peer_ip, filename,download_folder),daemon=True)
+    for peer_ip, filename,sendern in file_requests:
+        thread = threading.Thread(target=request_file, args=(peer_ip, filename, download_folder), kwargs={'sendername': sendern}, daemon=True, name=f"{peer_ip}-{filename}")
         download_threads.append(thread)
 
     # Wait for all downloads to complete

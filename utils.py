@@ -277,7 +277,7 @@ def multicast_discovery(q,port=12345, discovery_time=10,multicast_group='224.0.0
             print(f"Discovery complete. Peers found: {peerList}")
             q.put(peerList)
 
-def request_file(peer_ip, filename,download_folder = os.getcwd, main_port=12346):
+def request_file(peer_ip, filename,download_folder = os.getcwd,sendername="", main_port=12346):
     # Connect to peer on the main port to request the file
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         try:
@@ -291,14 +291,15 @@ def request_file(peer_ip, filename,download_folder = os.getcwd, main_port=12346)
                 new_port = int(sock.recv(1024).decode())  # Receive the new port for file transfer
                 print(f"File '{filename}' available on port {new_port}. Initiating download...")
                 time.sleep(0.5)# time for sender to setup socket
-                receive_file(peer_ip, new_port, filename,download_folder)
+                giveGuiInfoToReceiver(filename,sendername)
+                receive_file(peer_ip, new_port, filename,download_folder,sendername)
             else:
                 print(f"File '{filename}' not available from {peer_ip}")
         except Exception as e:
             print(f"Error connecting to {peer_ip} for file '{filename}': {e}")
 
 
-def receive_file(peer_ip, port, filename, download_folder):
+def receive_file(peer_ip, port, filename, download_folder,sendername=""):
     max_retries = 5
     retry_delay = 1  # seconds
     
@@ -328,6 +329,7 @@ def receive_file(peer_ip, port, filename, download_folder):
             speed = (os.path.getsize(local_filename) / (endTime - startTime) / (1024))/1024
             print(f"File '{filename}' received and saved as '{local_filename}'")
             print(f"File transfer rate is {speed:.2f} MB/s")
+            giveGuiInfoToReceiver(filename,sendername,speed,end=1)
             return True
             
 
@@ -371,16 +373,32 @@ def  giveGuiInfoToSender(filename,recipient_ip,speed=0,end=0):
     try:
         message = ""
         if(end == 0):
-            message = "Started sending file " + filename + " to " + recipient_ip
+            message = f"Started sending file {filename} to {recipient_ip}"
         else:
             if(speed!=0):
-                message = "Finished sending file " + filename + " to " + recipient_ip + " with speed " + "{0.2f}".format(speed) + " MB/s"
+                message = f"Finished sending file {filename} to {recipient_ip} with speed {speed:.2f} MB/s"
             else:
-                message = "Finished sending file " + filename + " to " + recipient_ip
+                message = f"Finished sending file {filename} to {recipient_ip}"
 
         globalLogger.sendMessageSender(message)
     except Exception as e:
         print(f"Error in giving info to sender: {e}")
+
+def giveGuiInfoToReceiver(filename,sendername,speed=0,end=0):
+    try:
+        message = ""
+        if(end == 0):
+            message = f"Started receiving file {filename} from {sendername}"
+        else:
+            if(speed!=0):
+                message = f"Finished receiving file {filename} from {sendername} with speed {speed:.2f} MB/s"
+
+            else:
+                message = f"Finished receiving file {filename} from {sendername}"
+
+        globalLogger.sendMessageReceiver(message)
+    except Exception as e:
+        print(f"Error in giving info to receiver: {e}")
 
 
 def setDestinationFolder():
