@@ -3,6 +3,7 @@ import sender
 import receiver
 import globalLogger
 import threading
+import queue
 
 
 
@@ -49,3 +50,33 @@ def Messages():
             return None
     except Exception as e:
         print("Error in Messages: ",e)
+
+def getBroadcastedFiles():
+    try:
+        return receiver.getBroadcastedFiles()
+    except Exception as e:
+        print("Error in getBroadcastedFiles: ",e)
+
+def displayReceivedFiles(peers):
+    try:
+        finalFiles = {}
+        iterator = 0
+        for peer_ip, info in peers.items():
+            sender = info['username']
+            for file in info['files']:
+                finalFileName = file+" - "+sender
+                finalFiles[iterator]=((finalFileName,peer_ip))
+                iterator+=1
+        return finalFiles
+    except Exception as e:
+        print("Error in displayReceivedFiles: ",e)
+
+def startReceiver(selected_files,folder):
+    try:
+        selectedFilesToBeSent = []
+        for file,peer_ip in selected_files:
+            newfilename = file.rsplit(" - ",1)[0]
+            selectedFilesToBeSent.append((peer_ip,newfilename))
+        receiver.guiReceiver(selectedFilesToBeSent,download_folder=folder)
+    except Exception as e:
+        print("Error in startReceiver: ",e)
