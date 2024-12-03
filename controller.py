@@ -51,6 +51,17 @@ def Messages():
     except Exception as e:
         print("Error in Messages: ",e)
 
+def MessagesReceiver():
+    try:
+        message = globalLogger.receiveMessageReceiver()
+        if message is not None:
+            return message
+        else:
+            return None
+    except Exception as e:
+        print("Error in MessagesReceiver: ",e)
+
+
 def getBroadcastedFiles():
     try:
         return receiver.getBroadcastedFiles()
@@ -76,7 +87,8 @@ def startReceiver(selected_files,folder):
         selectedFilesToBeSent = []
         for file,peer_ip in selected_files:
             newfilename = file.rsplit(" - ",1)[0]
-            selectedFilesToBeSent.append((peer_ip,newfilename))
+            sendername = file.rsplit(" - ",1)[1]
+            selectedFilesToBeSent.append((peer_ip,newfilename,sendername))
         receiver.guiReceiver(selectedFilesToBeSent,download_folder=folder)
     except Exception as e:
         print("Error in startReceiver: ",e)

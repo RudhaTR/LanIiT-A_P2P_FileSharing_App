@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, filedialog
-from controller import handle_login, handle_registration, handle_mode_selection, getFiles,AddFileTodatabase,startSending,Messages,stopSending,getBroadcastedFiles,displayReceivedFiles,startReceiver
+from controller import handle_login, handle_registration, handle_mode_selection, getFiles,AddFileTodatabase,startSending,Messages,stopSending,getBroadcastedFiles,displayReceivedFiles,startReceiver,MessagesReceiver
 import os
 import globalLogger
 
@@ -261,6 +261,19 @@ def open_receive_window(username, root):
             messagebox.showinfo("Error occured please contact the developer")
             print("Error", f"An error occurred: {e}")
 
+    def update_status():
+        try:
+            log_message = MessagesReceiver()  # Call the Messages function to get the status
+            if log_message:  # If there's a new message
+                status_text.insert(tk.END, log_message + "\n")  # Insert log message into status text widget
+                status_text.yview('end')  # Scroll to the end of the text widget
+
+            # Call update_status again after 100ms (or any interval you prefer)
+            if window.winfo_exists():
+                window.after(100, update_status)
+        except Exception as e:
+            print("Error in update_status: ",e)
+
     # Create the layout frames
     frame_top = tk.Frame(window)
     frame_top.pack(fill="x", padx=10, pady=10)
@@ -311,6 +324,8 @@ def open_receive_window(username, root):
 
     # Populate the broadcasted files list initially
     populate_broadcasted_files()
+    if window.winfo_exists():
+            window.after(100, update_status)  # Start checking for log messages every 100ms
 
     # Start the Tkinter event loop
     window.mainloop()
