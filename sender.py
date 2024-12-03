@@ -38,6 +38,7 @@ def add_files_from_user_gui(username,filepath):
 
 
 def guiMain(username):
+   
     broadcast_address = None
     file_metadata = retrieve_file_metadata(username)  # Display files available for sharing
     #user_files = get_files_from_user(username)  # Get files from user
@@ -53,13 +54,30 @@ def guiMain(username):
     ip, netmask = get_wifi_ip_and_subnet()
     #if ip and netmask:
     broadcast_address = calculate_broadcast_address(ip, netmask)
-    stop_event = threading.Event() # Event to signal threads to stop
-    broadcastThread = threading.Thread(target=broadcast_file_info, args=(file_names, username,stop_event,broadcast_address))
-    #broadcastThread = threading.Thread(target=multicast_file_info, args=(file_names, username,stop_event))
-    timer_thread = threading.Thread(target=stop_broadcast_after_timeout, args=(stop_event,))
-    listener_thread = threading.Thread(target=listen_for_requests, args=(12346, username, stop_event,file_dict))
-
     try:
+        stop_event = threading.Event() # Event to signal threads to stop
+        threads = [
+            threading.Thread(
+                target=broadcast_file_info, 
+                args=(file_names, username, stop_event, broadcast_address),
+                daemon=True  # Key addition: makes thread background-friendly
+            ),
+            threading.Thread(
+                target=stop_broadcast_after_timeout, 
+                args=(stop_event,),
+                daemon=True
+            ),
+            threading.Thread(
+                target=listen_for_requests, 
+                args=(12346, username, stop_event, file_dict),
+                daemon=True
+            )
+        ]
+        for thread in threads:
+                thread.start()
+    except Exception as e:
+        print(f"Error: {e}")
+        '''
         # Start threads
         broadcastThread.start()
         timer_thread.start()
@@ -81,7 +99,8 @@ def guiMain(username):
         timer_thread.join()
         listener_thread.join()
         print("Cleanup complete")
-       # DBconn.close()
+       # DBconn.close()'''
+        
 
 def main(username):
 

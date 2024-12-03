@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox, filedialog
-from controller import handle_login, handle_registration, handle_mode_selection, getFiles,AddFileTodatabase,startSending
+from controller import handle_login, handle_registration, handle_mode_selection, getFiles,AddFileTodatabase,startSending,Messages
 import os
+import globalLogger
 
 
 def open_login_window(root):
@@ -48,12 +49,12 @@ def open_username_password_window(action):
     window.mainloop()
 
 def open_sender_receiver_window(username,root):
+    root.destroy()
     def select_sender():
-        open_sender_window(username)
+        open_sender_window(username,window)
 
     def select_receiver():
         handle_mode_selection(username, "receiver")
-    root.destroy()
     window = tk.Tk()
     window.title("Select Mode")
     window.geometry("300x200")
@@ -66,8 +67,9 @@ def open_sender_receiver_window(username,root):
 
 
 
-def open_sender_window(username):
+def open_sender_window(username,root):
     # Create a new window
+    root.destroy()
     window = tk.Tk()
     window.title("Sender Window")
     window.geometry("800x400")
@@ -93,6 +95,18 @@ def open_sender_window(username):
         # This is where you would integrate file sending functionality
         startSending(username)  # Call backend function to start sending
         status_text.insert(tk.END, "Sending files...\n")  # Show that sending has started
+
+    def update_status():
+        try:
+            log_message = Messages()  # Call the Messages function to get the status
+            if log_message:  # If there's a new message
+                status_text.insert(tk.END, log_message + "\n")  # Insert log message into status text widget
+                status_text.yview('end')  # Scroll to the end of the text widget
+
+            # Call update_status again after 100ms (or any interval you prefer)
+            window.after(100, update_status)
+        except Exception as e:
+            print("Error in update_status: ",e)
 
     # Create frames for layout
     frame1 = tk.Frame(window)
@@ -127,6 +141,8 @@ def open_sender_window(username):
 
     status_text = tk.Text(frame2, height=15, width=30)
     status_text.pack(pady=10)
+
+    window.after(100, update_status)  # Start checking for log messages every 100ms
 
     # Function to populate the listbox with current files
     
