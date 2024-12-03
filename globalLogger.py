@@ -3,6 +3,10 @@ import threading
 
 qSender = queue.Queue()
 Senderlock = threading.Lock()
+
+qReceiver = queue.Queue()
+Receiverlock = threading.Lock()
+
 def sendMessageSender(message):
     try:
         with Senderlock:
@@ -18,3 +22,19 @@ def receiveMessageSender():
             return None
     except Exception as e:
         print("Error in receiveMessageSender: ",e)
+
+def sendMessageReceiver(message):
+    try:
+        with Receiverlock:
+            qReceiver.put(message)
+    except Exception as e:
+        print("Error in sendMessageReceiver: ",e)
+
+def receiveMessageReceiver():
+    try:
+        with Receiverlock:
+            if(not qReceiver.empty()):
+                return qReceiver.get(block=False)
+            return None
+    except Exception as e:
+        print("Error in receiveMessageReceiver: ",e)
