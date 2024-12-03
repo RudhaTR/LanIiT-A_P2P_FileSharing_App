@@ -201,7 +201,7 @@ def broadcast_discovery(q,port=12345, discovery_time=10):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #testing on local host
         sock.bind(("", port))
-        sock.settimeout(10)  # Set a 10-second timeout for recvfrom()
+        sock.settimeout(discovery_time)  # Set a 10-second timeout for recvfrom()
         print("Listening for peer broadcasts...")
         
         # Discover peers broadcasting within a time window
@@ -381,4 +381,9 @@ def  giveGuiInfoToSender(filename,recipient_ip,speed=0,end=0):
         globalLogger.sendMessageSender(message)
     except Exception as e:
         print(f"Error in giving info to sender: {e}")
+
+
+def setDestinationFolder():
+    pass
+
 
