@@ -48,7 +48,8 @@ def registerUser(username, password):
         (username,)
     )
     if cursor.fetchone() is not None:
-        raise ValueError('Username already exists')
+        print('Username already exists')
+        return False
 
     hashedPassword = hashPassword(password)
     cursor.execute(
@@ -58,6 +59,7 @@ def registerUser(username, password):
     conn.commit()
 
     print('User registered successfully')
+    return True
 
 
 def loginUser(username, password):
@@ -69,9 +71,11 @@ def loginUser(username, password):
         (username, hashedPassword)
     )
     if cursor.fetchone() is None:
-        raise ValueError('Invalid username or password')
+        print('Invalid username or password')
+        return False
 
     print('User logged in successfully')
+    return True
 
 def store_file_metadata(filename, filesize, filetype, filepath, username):
     conn = get_db_connection()

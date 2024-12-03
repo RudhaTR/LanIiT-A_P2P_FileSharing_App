@@ -1,6 +1,7 @@
 import tkinter as tk
-from tkinter import messagebox
-from controller import handle_login, handle_registration, handle_mode_selection
+from tkinter import messagebox, filedialog
+from controller import handle_login, handle_registration, handle_mode_selection, getFiles,AddFileTodatabase,startSending
+import os
 
 
 def open_login_window(root):
@@ -48,7 +49,7 @@ def open_username_password_window(action):
 
 def open_sender_receiver_window(username,root):
     def select_sender():
-        handle_mode_selection(username, "sender")
+        open_sender_window(username)
 
     def select_receiver():
         handle_mode_selection(username, "receiver")
@@ -62,6 +63,80 @@ def open_sender_receiver_window(username,root):
     tk.Button(window, text="Receiver", command=select_receiver).pack(pady=5)
 
     window.mainloop()
+
+
+
+def open_sender_window(username):
+    # Create a new window
+    window = tk.Tk()
+    window.title("Sender Window")
+    window.geometry("800x400")
+
+    def populate_files():
+        file_listbox.delete(0, tk.END)  # Clear the listbox
+        files_to_send = getFiles(username)  # Fetch the files from the backend
+        for file in files_to_send:
+            file_listbox.insert(tk.END, file[0])  # Assuming file[0] is the filename
+
+    # Function to handle file selection and add it to the listbox
+    def add_file():
+        # Open a file dialog to choose a file
+        file_path = filedialog.askopenfilename(title="Select a file to send")
+        if file_path:  # If a file is selected
+            AddFileTodatabase(username, file_path)
+            filename = os.path.basename(file_path)
+            file_listbox.insert(tk.END, filename)  # Add file name to the listbox
+            print(f"File added: {filename}")  # For debugging, can be removed later
+
+    # Function to handle sending files
+    def send_files():
+        # This is where you would integrate file sending functionality
+        startSending(username)  # Call backend function to start sending
+        status_text.insert(tk.END, "Sending files...\n")  # Show that sending has started
+
+    # Create frames for layout
+    frame1 = tk.Frame(window)
+    frame1.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+
+    frame2 = tk.Frame(window)
+    frame2.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
+
+    # Configure column weights to make the frames expand properly
+    window.grid_columnconfigure(0, weight=3)
+    window.grid_columnconfigure(1, weight=1)
+    
+    # Frame 1 (First column)
+    # Add File button
+    add_file_button = tk.Button(frame1, text="Add File", command=add_file)
+    add_file_button.pack(pady=10)
+
+    # Listbox for displaying files available to send
+    available_files_label = tk.Label(frame1, text="Files to Send", font=("Arial", 12))
+    available_files_label.pack(pady=5)
+
+    file_listbox = tk.Listbox(frame1, height=15, width=40)
+    file_listbox.pack(pady=10)
+
+    # Send button (at the bottom of the first column)
+    send_button = tk.Button(frame1, text="Send Files", command=send_files)
+    send_button.pack(pady=10)
+
+    # Frame 2 (Second column) - for displaying the sending status
+    status_label = tk.Label(frame2, text="Sending Status", font=("Arial", 12))
+    status_label.pack(pady=5)
+
+    status_text = tk.Text(frame2, height=15, width=30)
+    status_text.pack(pady=10)
+
+    # Function to populate the listbox with current files
+    
+
+    # Populate the listbox with current files
+    populate_files()
+
+    # Start the GUI main loop
+    window.mainloop()
+    
 
 def open_main_window():
     root = tk.Tk()

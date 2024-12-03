@@ -26,7 +26,64 @@ def get_files_from_user(username):
             print(f"Invalid file path: {filepath}")
     return files
 
-def main():
+def add_files_from_user_gui(username,filepath):
+    if( os.path.isfile(filepath)):
+            filename = os.path.basename(filepath)
+            filesize = os.path.getsize(filepath)
+            filetype = os.path.splitext(filename)[1]
+            print(f"Added {filename}")
+            store_file_metadata(filename, filesize, filetype,filepath,username)
+    else:
+            print(f"Invalid file path: {filepath}")
+
+
+def guiMain(username):
+    broadcast_address = None
+    file_metadata = retrieve_file_metadata(username)  # Display files available for sharing
+    #user_files = get_files_from_user(username)  # Get files from user
+    #file_dict = {file['name']: file['path'] for file in user_files}
+    file_dict = {}
+    for row in file_metadata:
+            file_dict[row[0]] = row[1]
+            
+    file_names = list(file_dict.keys())  # Extract file names for broadcasting
+    
+        # Start broadcasting file info in a separate thread
+        
+    ip, netmask = get_wifi_ip_and_subnet()
+    #if ip and netmask:
+    broadcast_address = calculate_broadcast_address(ip, netmask)
+    stop_event = threading.Event() # Event to signal threads to stop
+    broadcastThread = threading.Thread(target=broadcast_file_info, args=(file_names, username,stop_event,broadcast_address))
+    #broadcastThread = threading.Thread(target=multicast_file_info, args=(file_names, username,stop_event))
+    timer_thread = threading.Thread(target=stop_broadcast_after_timeout, args=(stop_event,))
+    listener_thread = threading.Thread(target=listen_for_requests, args=(12346, username, stop_event,file_dict))
+
+    try:
+        # Start threads
+        broadcastThread.start()
+        timer_thread.start()
+        listener_thread.start()
+
+        while not stop_event.is_set():
+            time.sleep(0.5)  # Check every 0.5 seconds
+
+        # Start listening for file requests
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+        stop_event.set()  # Signal threads to stop
+    except Exception as e:
+        print(f"Error: {e}")
+        stop_event.set()
+    finally:
+        # Wait for threads to finish
+        broadcastThread.join()
+        timer_thread.join()
+        listener_thread.join()
+        print("Cleanup complete")
+       # DBconn.close()
+
+def main(username):
 
     initialize_tables()
     username = "user123"  # Replace with actual username from the login process

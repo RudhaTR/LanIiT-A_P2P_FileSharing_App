@@ -1,4 +1,4 @@
-from db_utils import loginUser, registerUser
+from db_utils import loginUser, registerUser,retrieve_file_metadata
 import sender
 import receiver
 
@@ -21,3 +21,13 @@ def handle_mode_selection(username, mode):
     elif mode == "receiver":
         print(f"{username} selected Receiver mode.")
         receiver.main()  # Call receiver functionality
+
+def getFiles(username):
+    earlierFiles = retrieve_file_metadata(username)
+    return earlierFiles
+
+def AddFileTodatabase(username,filepath):
+    sender.add_files_from_user_gui(username,filepath)
+
+def startSending(username):
+    sender.guiMain(username)
